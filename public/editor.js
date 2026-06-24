@@ -193,7 +193,10 @@ const view = new EditorView({
   doc: savedContent,
   extensions: [
     basicSetup,
-    keymap.of([indentWithTab]),
+    keymap.of([
+      indentWithTab,
+      { key: "Mod-w", run: () => { closeFile(false); return true; } },
+    ]),
     langCompartment.of(plainText()),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
@@ -539,16 +542,16 @@ filenameEl.addEventListener("dblclick", () => {
   });
 });
 
-// ---- Keyboard shortcuts (case-insensitive) ----
-document.addEventListener("keydown", (e) => {
+// ---- Keyboard shortcuts (case-insensitive, capture phase) ----
+window.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
   if (!mod) return;
   const key = e.key.toLowerCase();
-  if (key === "s") { e.preventDefault(); } // suppress; save via toolbar button only
-  else if (key === "o") { e.preventDefault(); openFileWithPicker(); }
-  else if (key === "w") { e.preventDefault(); closeFile(false); }
-  else if (key === "b") { e.preventDefault(); window.toggleTheme(); }
-});
+  if (key === "s") { e.preventDefault(); e.stopPropagation(); }
+  else if (key === "o") { e.preventDefault(); e.stopPropagation(); openFileWithPicker(); }
+  else if (key === "w") { e.preventDefault(); e.stopPropagation(); closeFile(false); }
+  else if (key === "b") { e.preventDefault(); e.stopPropagation(); window.toggleTheme(); }
+}, true);
 
 // ---- Warn before closing with unsaved changes ----
 window.addEventListener("beforeunload", (e) => {

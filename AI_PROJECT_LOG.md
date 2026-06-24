@@ -50,6 +50,23 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Fix Cmd+W closing browser tab
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Capture-phase listener**: Moved keyboard shortcut listener from `document` (bubble phase) to `window` (capture phase, `true`). This intercepts keydown events before the browser processes them.
+- **stopPropagation**: Added `e.stopPropagation()` alongside `e.preventDefault()` to prevent the event from reaching browser-level handlers.
+- **CodeMirror keymap**: Added `Mod-w` binding to CM6 keymap so Cmd+W is caught even when the editor has focus (CM6 processes events before bubbling).
+- All shortcuts (S/O/W/B) now use capture + stopPropagation.
+
+Push status:
+
+- Complete.
+
 ### 2026-06-24 - Default temp folder: Downloads/tmp/
 
 Changed files:
