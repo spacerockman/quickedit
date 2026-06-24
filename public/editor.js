@@ -610,7 +610,7 @@ window.addEventListener("keydown", (e) => {
   if (key === "s") { e.preventDefault(); e.stopPropagation(); }
   else if (key === "o") { e.preventDefault(); e.stopPropagation(); openFileWithPicker(); }
   else if (key === "w") { e.preventDefault(); e.stopPropagation(); closeFile(false); }
-  else if (key === "p") { e.preventDefault(); e.stopPropagation(); window.togglePreview(); }
+  else if (key === "p" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); window.togglePreview(); }
   else if (key === "b") { e.preventDefault(); e.stopPropagation(); window.toggleTheme(); }
 }, true);
 
