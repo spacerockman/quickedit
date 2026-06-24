@@ -102,7 +102,8 @@ async function ensureTempDir() {
   }
   if (!window.showDirectoryPicker) return null;
   try {
-    dirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+    const picked = await window.showDirectoryPicker({ mode: "readwrite", startIn: "downloads" });
+    dirHandle = await picked.getDirectoryHandle("tmp", { create: true });
     await idbSet("temp-dir", dirHandle);
     tempDirHandle = dirHandle;
     return dirHandle;

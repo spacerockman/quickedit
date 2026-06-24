@@ -50,6 +50,23 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Default temp folder: Downloads/tmp/
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Auto-create tmp subfolder**: Directory picker now opens at Downloads (`startIn: 'downloads'`). After user selects Downloads, `getDirectoryHandle('tmp', { create: true })` automatically creates/uses a `tmp/` subfolder inside it. temp.txt is saved in `Downloads/tmp/`.
+- **No manual folder navigation needed**: User just selects Downloads, the tmp subfolder is handled automatically.
+
+Note: If you previously selected a different folder, the old handle in IndexedDB is still used. To re-pick, clear site data or the editor will keep using the stored handle.
+
+Push status:
+
+- Complete.
+
 ### 2026-06-24 - Cmd+W now saves then closes
 
 Changed files:
