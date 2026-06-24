@@ -50,6 +50,37 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Add temp file backing + double-click rename
+
+Changed files:
+
+- Updated `public/editor.js`, `public/style.css`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Temp file in ~/Downloads/temp/**: Blank/untitled state is now backed by a real `temp.txt` file. Uses File System Access API `showDirectoryPicker` — user selects the temp folder once (e.g. ~/Downloads/temp/), directory handle is stored in IndexedDB for persistence across reloads.
+- **Auto-save to file**: Auto-save now writes to the file handle (in addition to localStorage) when available. Debounced 2s.
+- **Double-click rename**: Double-click the filename tag in the toolbar to rename inline. Enter to confirm, Esc to cancel. For temp files: creates new file with new name in temp dir, deletes old file. For external files: updates display name, clears handle for save-as on next save.
+- **Close creates new temp.txt**: Closing a file creates a fresh empty temp.txt in the temp directory (if dir handle is available with permission).
+- **Session tracking**: `localStorage["quickedit-is-temp"]` tracks whether last session was a temp file or an external file. On reload, temp sessions load temp.txt; external sessions restore the filename from `localStorage["quickedit-last-filename"]`.
+- **CSS**: Added `#filename-edit` styling for the inline rename input, `cursor: pointer` and `user-select: none` on `#filename`.
+
+First-time setup:
+1. Open editor → blank state, filename shows "temp.txt" (no real file yet)
+2. Click Save → directory picker appears → select ~/Downloads/temp/
+3. temp.txt is created in that folder, content is saved
+4. On subsequent reloads, temp.txt is loaded automatically (no picker needed)
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.bundle.js` passed.
+- Key constants verified in bundle: "temp-dir", "temp.txt", "quickedit-fs", "quickedit-is-temp", "readwrite", showDirectoryPicker, renameFile, closeFile.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-24 - Add Close file feature
 
 Changed files:

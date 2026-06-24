@@ -96,6 +96,20 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 0 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+#filename-edit {
+  flex: 1;
+  font-weight: 500;
+  padding: 0 4px;
+  border: 1px solid var(--accent, #0e639c);
+  border-radius: 3px;
+  background: var(--bg, #fff);
+  color: var(--ink, #222);
+  font-size: inherit;
+  outline: none;
 }
 
 #lang-label {

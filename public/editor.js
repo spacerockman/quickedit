@@ -34,9 +34,109 @@ const plainText = () => [];
 const langCompartment = new Compartment();
 
 // ---- State ----
+const TEMP_FILENAME = "temp.txt";
 let currentFilename = null;
-let fileHandle = null; // FileSystemFileHandle (File System Access API)
+let fileHandle = null;
+let tempDirHandle = null;
+let fileInTempDir = false;
 let isDirty = false;
+
+// ---- IndexedDB for handle persistence ----
+const IDB_NAME = "quickedit-fs";
+const IDB_STORE = "handles";
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key, value) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbDel(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ---- Temp directory & file management ----
+async function verifyPermission(handle) {
+  if ((await handle.queryPermission({ mode: "readwrite" })) === "granted") return true;
+  if ((await handle.requestPermission({ mode: "readwrite" })) === "granted") return true;
+  return false;
+}
+
+async function ensureTempDir() {
+  let dirHandle = await idbGet("temp-dir");
+  if (dirHandle) {
+    if (await verifyPermission(dirHandle)) {
+      tempDirHandle = dirHandle;
+      return dirHandle;
+    }
+    await idbDel("temp-dir");
+  }
+  if (!window.showDirectoryPicker) return null;
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+    await idbSet("temp-dir", dirHandle);
+    tempDirHandle = dirHandle;
+    return dirHandle;
+  } catch (e) {
+    if (e.name !== "AbortError") console.error("Directory picker failed:", e);
+    return null;
+  }
+}
+
+async function initTempFile() {
+  let dirHandle = await idbGet("temp-dir");
+  if (!dirHandle || !(await verifyPermission(dirHandle))) {
+    currentFilename = TEMP_FILENAME;
+    fileInTempDir = false;
+    updateTitle();
+    return;
+  }
+  tempDirHandle = dirHandle;
+  try {
+    const fh = await dirHandle.getFileHandle(TEMP_FILENAME, { create: true });
+    fileHandle = fh;
+    fileInTempDir = true;
+    currentFilename = TEMP_FILENAME;
+    const file = await fh.getFile();
+    const text = await file.text();
+    loadFileContent(text, TEMP_FILENAME);
+    setDirty(false);
+  } catch (e) {
+    console.error("Temp file init failed:", e);
+    currentFilename = TEMP_FILENAME;
+    fileInTempDir = false;
+    updateTitle();
+  }
+}
 
 // ---- Theme ----
 const THEME_KEY = "quickedit-theme";
@@ -64,7 +164,7 @@ function setDirty(dirty) {
 }
 
 function updateTitle() {
-  const name = currentFilename || "Untitled";
+  const name = currentFilename || TEMP_FILENAME;
   const prefix = isDirty ? "\u2022 " : "";
   document.title = prefix + name + " \u2014 QuickEdit";
   document.getElementById("filename").textContent = prefix + name;
@@ -108,12 +208,22 @@ const view = new EditorView({
   parent: document.getElementById("editor"),
 });
 
-// ---- Auto-save (localStorage, debounced 2s) ----
+// ---- Auto-save (localStorage + file, debounced 2s) ----
 let autoSaveTimer = 0;
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => {
-    localStorage.setItem("quickedit-content", view.state.doc.toString());
+  autoSaveTimer = setTimeout(async () => {
+    const content = view.state.doc.toString();
+    localStorage.setItem("quickedit-content", content);
+    if (fileHandle) {
+      try {
+        const writable = await fileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+      } catch (e) {
+        console.error("Auto-save to file failed:", e);
+      }
+    }
   }, 2000);
 }
 
@@ -128,30 +238,29 @@ function loadFileContent(content, filename) {
   localStorage.setItem("quickedit-content", content);
 }
 
-// Open via File System Access API (native dialog) — gives us a handle for save-back
 async function openFileWithPicker() {
   if (!window.showOpenFilePicker) {
-    // Fallback: legacy file input
     document.getElementById("file-input").click();
     return;
   }
   try {
     const [handle] = await window.showOpenFilePicker();
     fileHandle = handle;
+    fileInTempDir = false;
     const file = await handle.getFile();
     const text = await file.text();
     loadFileContent(text, file.name);
     setDirty(false);
+    localStorage.setItem("quickedit-is-temp", "false");
+    localStorage.setItem("quickedit-last-filename", file.name);
   } catch (e) {
     if (e.name !== "AbortError") console.error("Open failed:", e);
   }
 }
 
-// Save: write back to the opened file handle, or prompt for save location
 async function saveFile() {
   const content = view.state.doc.toString();
 
-  // Case 1: we have a file handle — write directly (normal save)
   if (fileHandle) {
     try {
       const writable = await fileHandle.createWritable();
@@ -161,18 +270,38 @@ async function saveFile() {
       return;
     } catch (e) {
       console.error("Save to file handle failed:", e);
-      // Permission may have been revoked — fall through to picker
       fileHandle = null;
     }
   }
 
-  // Case 2: no handle — use save picker to choose location
+  const dir = await ensureTempDir();
+  if (dir) {
+    try {
+      const name = currentFilename || TEMP_FILENAME;
+      const fh = await dir.getFileHandle(name, { create: true });
+      const writable = await fh.createWritable();
+      await writable.write(content);
+      await writable.close();
+      fileHandle = fh;
+      fileInTempDir = true;
+      currentFilename = name;
+      setLanguage(name);
+      updateTitle();
+      setDirty(false);
+      localStorage.setItem("quickedit-is-temp", "true");
+      return;
+    } catch (e) {
+      console.error("Save to temp dir failed:", e);
+    }
+  }
+
   if (window.showSaveFilePicker) {
     try {
       const handle = await window.showSaveFilePicker({
-        suggestedName: currentFilename || "untitled.txt",
+        suggestedName: currentFilename || TEMP_FILENAME,
       });
       fileHandle = handle;
+      fileInTempDir = false;
       currentFilename = handle.name;
       updateTitle();
       setLanguage(handle.name);
@@ -180,6 +309,8 @@ async function saveFile() {
       await writable.write(content);
       await writable.close();
       setDirty(false);
+      localStorage.setItem("quickedit-is-temp", "false");
+      localStorage.setItem("quickedit-last-filename", handle.name);
       return;
     } catch (e) {
       if (e.name !== "AbortError") console.error("Save picker failed:", e);
@@ -187,8 +318,7 @@ async function saveFile() {
     }
   }
 
-  // Case 3: legacy fallback — download
-  const name = currentFilename || "untitled.txt";
+  const name = currentFilename || TEMP_FILENAME;
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -201,13 +331,15 @@ async function saveFile() {
   setDirty(false);
 }
 
-// Open via drag-drop or legacy file input — no file handle available
 function readAndOpen(file) {
   const reader = new FileReader();
   reader.onload = () => {
     fileHandle = null;
+    fileInTempDir = false;
     loadFileContent(reader.result, file.name);
     setDirty(false);
+    localStorage.setItem("quickedit-is-temp", "false");
+    localStorage.setItem("quickedit-last-filename", file.name);
   };
   reader.readAsText(file);
 }
@@ -233,19 +365,76 @@ window.handleFileInput = function (e) {
 window.openFileDialog = openFileWithPicker;
 window.saveFile = saveFile;
 
-// ---- Close file ----
-function closeFile() {
-  if (isDirty && !confirm("Discard unsaved changes?")) return;
+// ---- Rename file ----
+async function renameFile(newName) {
+  newName = newName.trim();
+  if (!newName || newName === currentFilename) return;
+
+  const content = view.state.doc.toString();
+
+  if (fileInTempDir && tempDirHandle) {
+    try {
+      const newHandle = await tempDirHandle.getFileHandle(newName, { create: true });
+      const writable = await newHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      if (fileHandle && fileHandle.name !== newName) {
+        await tempDirHandle.removeEntry(fileHandle.name);
+      }
+      fileHandle = newHandle;
+      currentFilename = newName;
+      setLanguage(newName);
+      updateTitle();
+      setDirty(false);
+      return;
+    } catch (e) {
+      console.error("Rename in temp dir failed:", e);
+    }
+  }
+
+  currentFilename = newName;
+  setLanguage(newName);
+  updateTitle();
   fileHandle = null;
-  currentFilename = null;
-  view.dispatch({
-    changes: { from: 0, to: view.state.doc.length, insert: "" },
-  });
-  setLanguage(null);
-  setDirty(false);
+  fileInTempDir = false;
+}
+window.renameFile = renameFile;
+
+// ---- Close file ----
+async function closeFile() {
+  if (isDirty && !confirm("Discard unsaved changes?")) return;
+
+  view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: "" } });
   localStorage.setItem("quickedit-content", "");
+  localStorage.setItem("quickedit-is-temp", "true");
+  localStorage.removeItem("quickedit-last-filename");
+
+  let dirHandle = await idbGet("temp-dir");
+  if (dirHandle && await verifyPermission(dirHandle)) {
+    tempDirHandle = dirHandle;
+    try {
+      const fh = await dirHandle.getFileHandle(TEMP_FILENAME, { create: true });
+      const writable = await fh.createWritable();
+      await writable.write("");
+      await writable.close();
+      fileHandle = fh;
+      fileInTempDir = true;
+    } catch (e) {
+      console.error("Create new temp file failed:", e);
+      fileHandle = null;
+      fileInTempDir = false;
+    }
+  } else {
+    fileHandle = null;
+    fileInTempDir = false;
+  }
+
+  currentFilename = TEMP_FILENAME;
+  setLanguage(TEMP_FILENAME);
+  setDirty(false);
   updateStats();
   updateCursorPos();
+  updateTitle();
 }
 window.closeFile = closeFile;
 
@@ -300,6 +489,48 @@ function updateCursorPos() {
     "Ln " + line.number + ", Col " + (pos - line.from() + 1);
 }
 
+// ---- Rename via double-click on filename ----
+const filenameEl = document.getElementById("filename");
+filenameEl.style.cursor = "pointer";
+filenameEl.title = "Double-click to rename";
+
+filenameEl.addEventListener("dblclick", () => {
+  const oldName = currentFilename || TEMP_FILENAME;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = oldName;
+  input.id = "filename-edit";
+  input.size = Math.max(oldName.length + 2, 12);
+  filenameEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let committed = false;
+  async function commit() {
+    if (committed) return;
+    committed = true;
+    const newName = input.value.trim() || oldName;
+    input.replaceWith(filenameEl);
+    if (newName !== oldName) {
+      await renameFile(newName);
+    } else {
+      updateTitle();
+    }
+  }
+
+  input.addEventListener("blur", commit);
+  input.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    else if (e.key === "Escape") {
+      committed = true;
+      input.value = oldName;
+      input.replaceWith(filenameEl);
+      updateTitle();
+    }
+  });
+});
+
 // ---- Keyboard shortcuts (case-insensitive) ----
 document.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
@@ -325,3 +556,15 @@ setLanguage(null);
 updateStats();
 updateCursorPos();
 updateTitle();
+
+const isTempSession = localStorage.getItem("quickedit-is-temp") !== "false";
+if (isTempSession) {
+  initTempFile();
+} else {
+  const lastFile = localStorage.getItem("quickedit-last-filename");
+  if (lastFile) {
+    currentFilename = lastFile;
+    setLanguage(lastFile);
+    updateTitle();
+  }
+}
