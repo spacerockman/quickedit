@@ -50,6 +50,34 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Fix Cmd+S save behavior + 7 UX improvements
+
+Changed files:
+
+- Updated `public/editor.js`, `public/index.html`, `public/style.css`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Cmd+S normal save**: Uses File System Access API to write back to the opened file. Falls back to `showSaveFilePicker` for new files, and download for legacy browsers.
+- **Cmd+O native picker**: Uses `showOpenFilePicker` when available, stores file handle for save-back.
+- **Drag-drop overlay fix**: `dragenter`/`dragleave` now properly toggle `dragover` class on `#app`.
+- **Unsaved indicator**: `•` prefix in filename and browser tab title when content is dirty.
+- **Cursor position**: Status bar shows `Ln X, Col Y` with live tracking.
+- **Save button**: Added to toolbar alongside Open button.
+- **Keyboard shortcut fix**: Case-insensitive key matching (`e.key.toLowerCase()`).
+- **Beforeunload warning**: Prompts before closing tab with unsaved changes.
+- **CSS cleanup**: Removed redundant selectors, added `.cm-activeLine` highlight.
+
+Evidence:
+
+- `node bundle.mjs` built successfully (643 KB).
+- `node --check public/editor.bundle.js` passed.
+- All 6 global functions confirmed present in bundle.
+
+Push status:
+
+- Complete. Commit `535e4be` pushed to `origin/main`.
+
 ### 2026-06-24 - Initial project setup
 
 Changed files:
