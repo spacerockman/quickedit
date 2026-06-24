@@ -31,8 +31,12 @@ const LANG_LABEL = {
 };
 
 const plainText = () => [];
-
 const langCompartment = new Compartment();
+
+// ---- State ----
+let currentFilename = null;
+let fileHandle = null; // FileSystemFileHandle (File System Access API)
+let isDirty = false;
 
 // ---- Theme ----
 const THEME_KEY = "quickedit-theme";
@@ -53,6 +57,19 @@ window.toggleTheme = function () {
   applyTheme(!isDark());
 };
 
+// ---- Dirty tracking & title ----
+function setDirty(dirty) {
+  isDirty = dirty;
+  updateTitle();
+}
+
+function updateTitle() {
+  const name = currentFilename || "Untitled";
+  const prefix = isDirty ? "\u2022 " : "";
+  document.title = prefix + name + " \u2014 QuickEdit";
+  document.getElementById("filename").textContent = prefix + name;
+}
+
 // ---- Language selection ----
 function langForFile(filename) {
   if (!filename) return plainText();
@@ -68,8 +85,6 @@ function setLanguage(filename) {
   document.getElementById("lang-label").textContent = label;
 }
 
-let currentFilename = null;
-
 // ---- Editor ----
 const savedContent = localStorage.getItem("quickedit-content") || "";
 
@@ -80,7 +95,13 @@ const view = new EditorView({
     keymap.of([indentWithTab]),
     langCompartment.of(plainText()),
     EditorView.updateListener.of((update) => {
-      if (update.docChanged) scheduleAutoSave();
+      if (update.docChanged) {
+        setDirty(true);
+        scheduleAutoSave();
+      }
+      if (update.selectionSet || update.docChanged || update.focusChanged) {
+        updateCursorPos();
+      }
       updateStats();
     }),
   ],
@@ -103,20 +124,98 @@ function loadFileContent(content, filename) {
     changes: { from: 0, to: view.state.doc.length, insert: content },
   });
   setLanguage(filename);
-  document.getElementById("filename").textContent = filename || "Untitled";
+  updateTitle();
   localStorage.setItem("quickedit-content", content);
 }
 
+// Open via File System Access API (native dialog) — gives us a handle for save-back
+async function openFileWithPicker() {
+  if (!window.showOpenFilePicker) {
+    // Fallback: legacy file input
+    document.getElementById("file-input").click();
+    return;
+  }
+  try {
+    const [handle] = await window.showOpenFilePicker();
+    fileHandle = handle;
+    const file = await handle.getFile();
+    const text = await file.text();
+    loadFileContent(text, file.name);
+    setDirty(false);
+  } catch (e) {
+    if (e.name !== "AbortError") console.error("Open failed:", e);
+  }
+}
+
+// Save: write back to the opened file handle, or prompt for save location
+async function saveFile() {
+  const content = view.state.doc.toString();
+
+  // Case 1: we have a file handle — write directly (normal save)
+  if (fileHandle) {
+    try {
+      const writable = await fileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      setDirty(false);
+      return;
+    } catch (e) {
+      console.error("Save to file handle failed:", e);
+      // Permission may have been revoked — fall through to picker
+      fileHandle = null;
+    }
+  }
+
+  // Case 2: no handle — use save picker to choose location
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: currentFilename || "untitled.txt",
+      });
+      fileHandle = handle;
+      currentFilename = handle.name;
+      updateTitle();
+      setLanguage(handle.name);
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      setDirty(false);
+      return;
+    } catch (e) {
+      if (e.name !== "AbortError") console.error("Save picker failed:", e);
+      return;
+    }
+  }
+
+  // Case 3: legacy fallback — download
+  const name = currentFilename || "untitled.txt";
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setDirty(false);
+}
+
+// Open via drag-drop or legacy file input — no file handle available
 function readAndOpen(file) {
   const reader = new FileReader();
-  reader.onload = () => loadFileContent(reader.result, file.name);
+  reader.onload = () => {
+    fileHandle = null;
+    loadFileContent(reader.result, file.name);
+    setDirty(false);
+  };
   reader.readAsText(file);
 }
 
 window.handleDrop = function (e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = "copy";
-  const file = e.dataTransfer.files?.[0];
+  const file = e.dataTransfer?.files?.[0];
   if (file) readAndOpen(file);
 };
 
@@ -131,23 +230,42 @@ window.handleFileInput = function (e) {
   e.target.value = "";
 };
 
-window.openFileDialog = function () {
-  document.getElementById("file-input").click();
-};
+window.openFileDialog = openFileWithPicker;
+window.saveFile = saveFile;
 
-window.saveFile = function () {
-  const content = view.state.doc.toString();
-  const name = currentFilename || "untitled.txt";
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
+// ---- Drop overlay: toggle dragover class on #app ----
+const app = document.getElementById("app");
+let dragCounter = 0;
+
+app.addEventListener("dragenter", (e) => {
+  if (!e.dataTransfer?.types?.includes("Files")) return;
+  e.preventDefault();
+  dragCounter++;
+  app.classList.add("dragover");
+});
+
+app.addEventListener("dragover", (e) => {
+  if (!e.dataTransfer?.types?.includes("Files")) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "copy";
+});
+
+app.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    app.classList.remove("dragover");
+  }
+});
+
+app.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  app.classList.remove("dragover");
+  const file = e.dataTransfer?.files?.[0];
+  if (file) readAndOpen(file);
+});
 
 // ---- Status bar ----
 function updateStats() {
@@ -159,15 +277,34 @@ function updateStats() {
     : 0;
 }
 
-// ---- Keyboard shortcuts ----
+function updateCursorPos() {
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  document.getElementById("cursor-pos").textContent =
+    "Ln " + line.number + ", Col " + (pos - line.from() + 1);
+}
+
+// ---- Keyboard shortcuts (case-insensitive) ----
 document.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
-  if (mod && e.key === "s") { e.preventDefault(); window.saveFile(); }
-  if (mod && e.key === "o") { e.preventDefault(); window.openFileDialog(); }
-  if (mod && e.key === "b") { e.preventDefault(); window.toggleTheme(); }
+  if (!mod) return;
+  const key = e.key.toLowerCase();
+  if (key === "s") { e.preventDefault(); saveFile(); }
+  else if (key === "o") { e.preventDefault(); openFileWithPicker(); }
+  else if (key === "b") { e.preventDefault(); window.toggleTheme(); }
+});
+
+// ---- Warn before closing with unsaved changes ----
+window.addEventListener("beforeunload", (e) => {
+  if (isDirty) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
 });
 
 // ---- Init ----
 applyTheme(isDark());
 setLanguage(null);
 updateStats();
+updateCursorPos();
+updateTitle();

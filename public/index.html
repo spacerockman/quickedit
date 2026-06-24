@@ -12,13 +12,14 @@
   <!-- Toolbar -->
   <div id="toolbar">
     <button id="btn-open" onclick="openFileDialog()" title="Open file (Cmd+O)">Open</button>
+    <button id="btn-save" onclick="saveFile()" title="Save file (Cmd+S)">Save</button>
     <span id="filename">Untitled</span>
     <span id="lang-label">Plain Text</span>
     <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme (Cmd+B)">&#9788;</button>
   </div>
 
   <!-- Drop overlay -->
-  <div id="drop-overlay" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+  <div id="drop-overlay">
     <div id="drop-hint">Drop file to open</div>
   </div>
 
@@ -27,14 +28,15 @@
 
   <!-- Status bar -->
   <div id="statusbar">
-    <span id="status-lines">Ln <span id="line-count">0</span></span>
-    <span id="status-words">W: <span id="word-count">0</span></span>
+    <span id="cursor-pos">Ln 1, Col 1</span>
+    <span id="status-lines">Lines: <span id="line-count">0</span></span>
+    <span id="status-words">Words: <span id="word-count">0</span></span>
     <span id="status-hint">Cmd+O Open &middot; Cmd+S Save &middot; Cmd+B Theme</span>
   </div>
 </div>
 
-<!-- Hidden file input -->
-<input type="file" id="file-input" onchange="handleFileInput(event)" style="display:none">
+<!-- Hidden file input (legacy fallback for browsers without showOpenFilePicker) -->
+<input type="file" id="file-input" onchange="handleFileInput(event)" hidden>
 
 <!-- Bundled editor (self-contained IIFE, no module required -- works from file://) -->
 <script src="editor.bundle.js"></script>

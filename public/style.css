@@ -36,8 +36,8 @@ html.dark {
   --ink: #cccccc;
   --ink2: #888888;
   --line: #3e3e42;
-  --accent: #007acc;
-  --accent-hover: #1a8ad4;
+  --accent: #0e639c;
+  --accent-hover: #1177bb;
 }
 
 body {
@@ -50,13 +50,14 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
 }
 
 /* ---- Toolbar ---- */
 #toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 4px 8px;
   background: var(--surface);
   border-bottom: var(--gap) solid var(--line);
@@ -83,6 +84,10 @@ body {
   color: #fff;
 }
 
+#toolbar button:active {
+  transform: scale(0.96);
+}
+
 #filename {
   flex: 1;
   color: var(--ink);
@@ -90,12 +95,14 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 0 4px;
 }
 
 #lang-label {
   color: var(--ink2);
   font-size: 11px;
   padding: 0 4px;
+  white-space: nowrap;
 }
 
 /* ---- Drop overlay ---- */
@@ -103,19 +110,18 @@ body {
   display: none;
   position: absolute;
   inset: 0;
-  z-index: 10;
-  background: rgba(0, 122, 204, 0.15);
+  z-index: 50;
+  background: rgba(14, 99, 156, 0.12);
   border: 3px dashed var(--accent);
   border-radius: var(--radius);
   margin: 4px;
   pointer-events: none;
+  align-items: center;
+  justify-content: center;
 }
 
 #app.dragover #drop-overlay {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
 }
 
 #drop-hint {
@@ -131,14 +137,6 @@ body {
 #editor {
   flex: 1;
   overflow: hidden;
-}
-
-/* ---- Drag-over state on body ---- */
-body.file-drag #drop-overlay {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
 }
 
 /* ---- Status bar ---- */
@@ -183,6 +181,9 @@ html.light .cm-editor .cm-gutters {
 html.light .cm-editor .cm-activeLineGutter {
   background: #e8f0fe;
 }
+html.light .cm-editor .cm-activeLine {
+  background: #f7f7f7;
+}
 
 html.dark .cm-editor {
   background: #1e1e1e;
@@ -193,6 +194,9 @@ html.dark .cm-editor .cm-gutters {
   border-right: 1px solid #333;
 }
 html.dark .cm-editor .cm-activeLineGutter {
+  background: #282828;
+}
+html.dark .cm-editor .cm-activeLine {
   background: #282828;
 }
 
