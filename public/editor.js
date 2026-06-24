@@ -100,7 +100,11 @@ async function ensureTempDir() {
     }
     await idbDel("temp-dir");
   }
-  if (!window.showDirectoryPicker) return null;
+  if (!window.showDirectoryPicker) {
+    alert("This browser does not support directory access (File System Access API).\nPlease use Chrome or Edge to enable temp file saving in Downloads/tmp/.");
+    return null;
+  }
+  alert("Select your Downloads folder to create the tmp/ subfolder for temp files.");
   try {
     const picked = await window.showDirectoryPicker({ mode: "readwrite", startIn: "downloads" });
     dirHandle = await picked.getDirectoryHandle("tmp", { create: true });
@@ -293,9 +297,12 @@ async function saveFile() {
       updateTitle();
       setDirty(false);
       localStorage.setItem("quickedit-is-temp", "true");
+      const hintEl = document.getElementById("status-hint");
+      if (hintEl) hintEl.textContent = "Saved to Downloads/tmp/" + name;
       return;
     } catch (e) {
       console.error("Save to temp dir failed:", e);
+      alert("Failed to save to Downloads/tmp/: " + e.message);
     }
   }
 
@@ -570,6 +577,10 @@ updateTitle();
 
 const isTempSession = localStorage.getItem("quickedit-is-temp") !== "false";
 if (isTempSession) {
+  if (!window.showDirectoryPicker) {
+    const hintEl = document.getElementById("status-hint");
+    if (hintEl) hintEl.textContent = "Note: use Chrome for temp file saving in Downloads/tmp/";
+  }
   initTempFile();
 } else {
   const lastFile = localStorage.getItem("quickedit-last-filename");
