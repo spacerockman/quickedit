@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,8 @@
   <!-- Toolbar -->
   <div id="toolbar">
     <button id="btn-open" onclick="openFileDialog()" title="Open file (Cmd+O)">Open</button>
-    <button id="btn-save" onclick="saveFile()" title="Save file (Cmd+S)">Save</button>
+    <button id="btn-save" onclick="saveFile()" title="Save file">Save</button>
+    <button id="btn-close" onclick="closeFile()" title="Close file (Cmd+W)">Close</button>
     <span id="filename">Untitled</span>
     <span id="lang-label">Plain Text</span>
     <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme (Cmd+B)">&#9788;</button>
@@ -31,7 +32,7 @@
     <span id="cursor-pos">Ln 1, Col 1</span>
     <span id="status-lines">Lines: <span id="line-count">0</span></span>
     <span id="status-words">Words: <span id="word-count">0</span></span>
-    <span id="status-hint">Cmd+O Open &middot; Cmd+S Save &middot; Cmd+B Theme</span>
+    <span id="status-hint">Cmd+O Open &middot; Cmd+W Close &middot; Cmd+B Theme</span>
   </div>
 </div>
 

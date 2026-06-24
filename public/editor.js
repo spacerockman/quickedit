@@ -233,6 +233,22 @@ window.handleFileInput = function (e) {
 window.openFileDialog = openFileWithPicker;
 window.saveFile = saveFile;
 
+// ---- Close file ----
+function closeFile() {
+  if (isDirty && !confirm("Discard unsaved changes?")) return;
+  fileHandle = null;
+  currentFilename = null;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: "" },
+  });
+  setLanguage(null);
+  setDirty(false);
+  localStorage.setItem("quickedit-content", "");
+  updateStats();
+  updateCursorPos();
+}
+window.closeFile = closeFile;
+
 // ---- Drop overlay: toggle dragover class on #app ----
 const app = document.getElementById("app");
 let dragCounter = 0;
@@ -291,6 +307,7 @@ document.addEventListener("keydown", (e) => {
   const key = e.key.toLowerCase();
   if (key === "s") { e.preventDefault(); } // suppress; save via toolbar button only
   else if (key === "o") { e.preventDefault(); openFileWithPicker(); }
+  else if (key === "w") { e.preventDefault(); closeFile(); }
   else if (key === "b") { e.preventDefault(); window.toggleTheme(); }
 });
 

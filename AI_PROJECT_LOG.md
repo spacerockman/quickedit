@@ -50,6 +50,29 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Add Close file feature
+
+Changed files:
+
+- Updated `public/editor.js`, `public/index.html`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Close button**: Added to toolbar between Save and filename.
+- **closeFile()**: Clears editor content, resets file handle and filename to Untitled, clears localStorage content. Prompts confirm dialog if there are unsaved changes.
+- **Cmd+W shortcut**: Closes the current file (overridden with preventDefault so browser tab doesn't close).
+- **HTML default class**: Changed `class="dark"` to `class="light"` on `<html>` to match the light default theme (prevents dark flash before JS loads).
+- **Status hint**: Updated to show Cmd+W instead of Cmd+S.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `editor.js` closeFile function and Cmd+W handler verified.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-24 - Remove Cmd+S save shortcut + default light theme
 
 Changed files:
