@@ -401,8 +401,15 @@ async function renameFile(newName) {
 window.renameFile = renameFile;
 
 // ---- Close file ----
-async function closeFile() {
-  if (isDirty && !confirm("Discard unsaved changes?")) return;
+async function closeFile(discard = true) {
+  if (isDirty) {
+    if (discard) {
+      if (!confirm("Discard unsaved changes?")) return;
+    } else {
+      await saveFile();
+      if (isDirty) return;
+    }
+  }
 
   view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: "" } });
   localStorage.setItem("quickedit-content", "");
@@ -436,7 +443,7 @@ async function closeFile() {
   updateCursorPos();
   updateTitle();
 }
-window.closeFile = closeFile;
+window.closeFile = () => closeFile(true);
 
 // ---- Drop overlay: toggle dragover class on #app ----
 const app = document.getElementById("app");
@@ -538,7 +545,7 @@ document.addEventListener("keydown", (e) => {
   const key = e.key.toLowerCase();
   if (key === "s") { e.preventDefault(); } // suppress; save via toolbar button only
   else if (key === "o") { e.preventDefault(); openFileWithPicker(); }
-  else if (key === "w") { e.preventDefault(); closeFile(); }
+  else if (key === "w") { e.preventDefault(); closeFile(false); }
   else if (key === "b") { e.preventDefault(); window.toggleTheme(); }
 });
 

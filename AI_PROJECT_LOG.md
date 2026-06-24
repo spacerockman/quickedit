@@ -50,6 +50,27 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Cmd+W now saves then closes
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Cmd+W = save + close**: Previously Cmd+W asked to discard unsaved changes. Now it saves the current content first, then closes the file (creates fresh temp.txt). If save fails or is cancelled, the close is aborted.
+- **Toolbar Close button = discard + close**: The Close button keeps the old behavior (confirm dialog to discard unsaved changes). `closeFile(discard)` parameter controls this.
+- **closeFile signature**: Changed to `closeFile(discard = true)`. `discard=true` shows confirm dialog; `discard=false` saves first.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-24 - Add temp file backing + double-click rename
 
 Changed files:
