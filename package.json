@@ -1,0 +1,24 @@
+{
+  "name": "quickedit",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lightweight file:// based text editor using CodeMirror 6. Zero runtime deps, no server.",
+  "scripts": {
+    "build": "node bundle.mjs",
+    "postinstall": "echo 'Run npm run build to bundle the editor'"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-javascript": "^6.2.3",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/lang-python": "^6.1.7",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.5",
+    "codemirror": "^6.0.1",
+    "esbuild": "^0.25.0"
+  }
+}
