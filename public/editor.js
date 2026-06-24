@@ -42,7 +42,7 @@ let isDirty = false;
 const THEME_KEY = "quickedit-theme";
 
 function isDark() {
-  return (localStorage.getItem(THEME_KEY) || "dark") === "dark";
+  return (localStorage.getItem(THEME_KEY) || "light") === "dark";
 }
 
 function applyTheme(dark) {
@@ -289,7 +289,7 @@ document.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
   if (!mod) return;
   const key = e.key.toLowerCase();
-  if (key === "s") { e.preventDefault(); saveFile(); }
+  if (key === "s") { e.preventDefault(); } // suppress; save via toolbar button only
   else if (key === "o") { e.preventDefault(); openFileWithPicker(); }
   else if (key === "b") { e.preventDefault(); window.toggleTheme(); }
 });

@@ -50,6 +50,26 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Remove Cmd+S save shortcut + default light theme
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Cmd+S no longer saves**: Removed `saveFile()` call from Cmd+S handler. The key is still suppressed (`preventDefault`) so the browser's native "Save Page" dialog doesn't appear either. Saving is now done via the toolbar Save button only.
+- **Default theme changed to light**: Default value in `isDark()` changed from `"dark"` to `"light"`. First-time users now see the white theme. Existing users keep their localStorage preference.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `editor.js` lines 45, 292 verified.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-24 - Fix Cmd+S save behavior + 7 UX improvements
 
 Changed files:
