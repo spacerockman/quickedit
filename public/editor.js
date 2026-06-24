@@ -9,6 +9,7 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { marked } from "marked";
+import { inlinePreview, autoCloseCodeFence, extendEmphasisPair } from "@atomic-editor/editor";
 
 // ---- Language map (filename ext -> CM6 extension factory) ----
 const LANG_FACTORY = {
@@ -33,6 +34,7 @@ const LANG_LABEL = {
 
 const plainText = () => [];
 const langCompartment = new Compartment();
+const wysiwygCompartment = new Compartment();
 
 // ---- State ----
 const TEMP_FILENAME = "temp.txt";
@@ -42,6 +44,8 @@ let tempDirHandle = null;
 let fileInTempDir = false;
 let isDirty = false;
 let previewMode = "off"; // "off" | "split" | "full"
+let wysiwygMode = false;
+let preWysiwygLang = null; // language to restore on exit
 
 // ---- IndexedDB for handle persistence ----
 const IDB_NAME = "quickedit-fs";
@@ -158,6 +162,9 @@ function applyTheme(dark) {
   localStorage.setItem(THEME_KEY, dark ? "dark" : "light");
   const btn = document.getElementById("theme-toggle");
   if (btn) btn.innerHTML = dark ? "&#9788;" : "&#9790;";
+  if (wysiwygMode) {
+    document.getElementById("editor").setAttribute("data-theme", dark ? "dark" : "light");
+  }
 }
 
 window.toggleTheme = function () {
@@ -192,6 +199,42 @@ function setLanguage(filename) {
   document.getElementById("lang-label").textContent = label;
 }
 
+// ---- WYSIWYG mode (Typora-style inline markdown rendering) ----
+function activateWysiwyg() {
+  if (wysiwygMode) return;
+  preWysiwygLang = currentFilename;
+  wysiwygMode = true;
+  view.dispatch({ effects: langCompartment.reconfigure(markdown()) });
+  view.dispatch({ effects: wysiwygCompartment.reconfigure([
+    inlinePreview(),
+    autoCloseCodeFence(),
+    extendEmphasisPair(),
+  ]) });
+  document.getElementById("lang-label").textContent = "Markdown (WYSIWYG)";
+  const badge = document.getElementById("md-badge");
+  if (badge) badge.style.display = "inline-block";
+  document.getElementById("editor").setAttribute("data-theme", isDark() ? "dark" : "light");
+  localStorage.setItem("quickedit-wysiwyg", "true");
+  if (previewMode !== "off") { previewMode = "off"; applyPreviewMode(); }
+}
+
+function deactivateWysiwyg() {
+  if (!wysiwygMode) return;
+  wysiwygMode = false;
+  view.dispatch({ effects: wysiwygCompartment.reconfigure([]) });
+  setLanguage(preWysiwygLang);
+  preWysiwygLang = null;
+  const badge = document.getElementById("md-badge");
+  if (badge) badge.style.display = "none";
+  document.getElementById("editor").removeAttribute("data-theme");
+  localStorage.setItem("quickedit-wysiwyg", "false");
+}
+
+window.toggleWysiwyg = function () {
+  if (wysiwygMode) deactivateWysiwyg();
+  else activateWysiwyg();
+};
+
 // ---- Editor ----
 const savedContent = localStorage.getItem("quickedit-content") || "";
 
@@ -202,8 +245,18 @@ const view = new EditorView({
     keymap.of([
       indentWithTab,
       { key: "Mod-w", run: () => { closeFile(false); return true; } },
+      { key: "Enter", run: (view) => {
+        const line1 = view.state.doc.line(1);
+        if (line1.text.trim() === "@md" && view.state.selection.main.head === line1.to) {
+          view.dispatch({ changes: { from: line1.from, to: line1.to } });
+          activateWysiwyg();
+          return true;
+        }
+        return false;
+      }},
     ]),
     langCompartment.of(plainText()),
+    wysiwygCompartment.of([]),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         setDirty(true);
@@ -244,7 +297,7 @@ function loadFileContent(content, filename) {
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: content },
   });
-  setLanguage(filename);
+  if (!wysiwygMode) setLanguage(filename);
   updateTitle();
   localStorage.setItem("quickedit-content", content);
 }
@@ -416,6 +469,7 @@ window.renameFile = renameFile;
 
 // ---- Close file ----
 async function closeFile(discard = true) {
+  if (wysiwygMode) deactivateWysiwyg();
   if (isDirty) {
     if (discard) {
       if (!confirm("Discard unsaved changes?")) return;
@@ -586,6 +640,7 @@ function applyPreviewMode() {
 }
 
 window.togglePreview = function () {
+  if (wysiwygMode) return;
   if (previewMode === "off") previewMode = "split";
   else if (previewMode === "split") previewMode = "full";
   else previewMode = "off";
@@ -601,6 +656,7 @@ window.addEventListener("keydown", (e) => {
   else if (key === "o") { e.preventDefault(); e.stopPropagation(); openFileWithPicker(); }
   else if (key === "w") { e.preventDefault(); e.stopPropagation(); closeFile(false); }
   else if (key === "p" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); window.togglePreview(); }
+  else if (key === "m" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); window.toggleWysiwyg(); }
   else if (key === "b") { e.preventDefault(); e.stopPropagation(); window.toggleTheme(); }
 }, true);
 
@@ -618,6 +674,10 @@ setLanguage(null);
 updateStats();
 updateCursorPos();
 updateTitle();
+
+if (localStorage.getItem("quickedit-wysiwyg") === "true") {
+  activateWysiwyg();
+}
 
 const isTempSession = localStorage.getItem("quickedit-is-temp") !== "false";
 if (isTempSession) {

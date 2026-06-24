@@ -50,6 +50,30 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Add WYSIWYG Markdown mode (@md trigger)
+
+Changed files:
+
+- Updated `package.json` (added `@atomic-editor/editor` devDep), `public/editor.js`, `public/index.html`, `public/style.css`, `public/editor.bundle.js`, `public/atomic-preview.css` (new).
+
+What was completed:
+
+- **Typora-style inline WYSIWYG**: Type `@md` on first line + press Enter → `@md` auto-deletes, WYSIWYG mode activates. Markdown syntax (headings, bold, italic, code, links, lists, blockquotes) renders inline — raw syntax hidden on non-cursor lines, visible on the line being edited.
+- **Package**: `@atomic-editor/editor` v0.4.3 — zero npm deps, zero React, 39KB core extension. Uses CM6 `ViewPlugin` + `Decoration.replace` (same approach as Obsidian). Document stays pure markdown — byte-for-byte round-trip.
+- **Toggle**: Click MD badge in toolbar or Cmd+Shift+M to exit WYSIWYG mode. State persists in `localStorage["quickedit-wysiwyg"]`.
+- **Theme integration**: `--atomic-editor-*` CSS variables mapped to existing light/dark theme variables. `data-theme` attribute on `#editor` toggles atomic-editor light/dark CSS.
+- **Preview disabled in WYSIWYG**: Split preview is redundant with inline rendering — `togglePreview` returns early when WYSIWYG is active.
+- **Bundle size**: 643KB → 702KB (+59KB for inline preview extension). CSS: 26KB separate file.
+
+Evidence:
+
+- `npm run build` built successfully (702 KB bundle, 0 React references).
+- `open public/index.html` opened editor in browser.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-24 - Add Markdown preview feature
 
 Changed files:

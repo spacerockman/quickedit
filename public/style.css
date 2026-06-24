@@ -119,6 +119,24 @@ body {
   white-space: nowrap;
 }
 
+#md-badge {
+  display: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  letter-spacing: 0.5px;
+}
+
+#md-badge:hover {
+  background: var(--accent-hover);
+}
+
 /* ---- Drop overlay ---- */
 #drop-overlay {
   display: none;
@@ -327,4 +345,31 @@ html.dark .cm-editor .cm-activeLine {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ink2);
+}
+
+/* ---- Atomic-editor WYSIWYG theme mapping ---- */
+html.dark #editor[data-theme="dark"] {
+  --atomic-editor-fg: var(--ink);
+  --atomic-editor-fg-muted: var(--ink2);
+  --atomic-editor-bg: var(--bg);
+  --atomic-editor-bg-panel: var(--surface);
+  --atomic-editor-bg-surface: var(--surface2);
+  --atomic-editor-border: var(--line);
+  --atomic-editor-accent: var(--accent);
+  --atomic-editor-accent-soft: var(--accent-hover);
+  --atomic-editor-link: var(--accent);
+  --atomic-editor-link-hover: var(--accent-hover);
+}
+
+html.light #editor[data-theme="light"] {
+  --atomic-editor-fg: var(--ink);
+  --atomic-editor-fg-muted: var(--ink2);
+  --atomic-editor-bg: var(--bg);
+  --atomic-editor-bg-panel: var(--surface);
+  --atomic-editor-bg-surface: var(--surface2);
+  --atomic-editor-border: var(--line);
+  --atomic-editor-accent: var(--accent);
+  --atomic-editor-accent-soft: var(--accent-hover);
+  --atomic-editor-link: var(--accent);
+  --atomic-editor-link-hover: var(--accent-hover);
 }
