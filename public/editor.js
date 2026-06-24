@@ -8,6 +8,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
+import { marked } from "marked";
 
 // ---- Language map (filename ext -> CM6 extension factory) ----
 const LANG_FACTORY = {
@@ -40,6 +41,7 @@ let fileHandle = null;
 let tempDirHandle = null;
 let fileInTempDir = false;
 let isDirty = false;
+let previewMode = "off"; // "off" | "split" | "full"
 
 // ---- IndexedDB for handle persistence ----
 const IDB_NAME = "quickedit-fs";
@@ -206,6 +208,7 @@ const view = new EditorView({
       if (update.docChanged) {
         setDirty(true);
         scheduleAutoSave();
+        if (previewMode !== "off") updatePreview();
       }
       if (update.selectionSet || update.docChanged || update.focusChanged) {
         updateCursorPos();
@@ -549,6 +552,56 @@ filenameEl.addEventListener("dblclick", () => {
   });
 });
 
+// ---- Markdown preview ----
+const editorEl = document.getElementById("editor");
+const previewEl = document.getElementById("preview");
+
+function updatePreview() {
+  if (previewMode === "off" || !previewEl) return;
+  const text = view.state.doc.toString();
+  const ext = currentFilename ? currentFilename.split(".").pop().toLowerCase() : "";
+  if (ext === "md" || ext === "markdown") {
+    previewEl.innerHTML = marked.parse(text);
+  } else {
+    previewEl.innerHTML = "<pre class='no-md-hint'>Preview is only available for Markdown (.md) files</pre>";
+  }
+}
+
+function applyPreviewMode() {
+  if (!previewEl) return;
+  const app = document.getElementById("app");
+  if (previewMode === "off") {
+    app.classList.remove("preview-split", "preview-full");
+    editorEl.style.display = "";
+    previewEl.style.display = "none";
+    const btn = document.getElementById("btn-preview");
+    if (btn) btn.textContent = "Preview";
+  } else if (previewMode === "split") {
+    app.classList.remove("preview-full");
+    app.classList.add("preview-split");
+    editorEl.style.display = "";
+    previewEl.style.display = "";
+    const btn = document.getElementById("btn-preview");
+    if (btn) btn.textContent = "Split";
+    updatePreview();
+  } else if (previewMode === "full") {
+    app.classList.remove("preview-split");
+    app.classList.add("preview-full");
+    editorEl.style.display = "none";
+    previewEl.style.display = "";
+    const btn = document.getElementById("btn-preview");
+    if (btn) btn.textContent = "Editor";
+    updatePreview();
+  }
+}
+
+window.togglePreview = function () {
+  if (previewMode === "off") previewMode = "split";
+  else if (previewMode === "split") previewMode = "full";
+  else previewMode = "off";
+  applyPreviewMode();
+};
+
 // ---- Keyboard shortcuts (case-insensitive, capture phase) ----
 window.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
@@ -557,6 +610,7 @@ window.addEventListener("keydown", (e) => {
   if (key === "s") { e.preventDefault(); e.stopPropagation(); }
   else if (key === "o") { e.preventDefault(); e.stopPropagation(); openFileWithPicker(); }
   else if (key === "w") { e.preventDefault(); e.stopPropagation(); closeFile(false); }
+  else if (key === "p") { e.preventDefault(); e.stopPropagation(); window.togglePreview(); }
   else if (key === "b") { e.preventDefault(); e.stopPropagation(); window.toggleTheme(); }
 }, true);
 

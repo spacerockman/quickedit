@@ -50,6 +50,25 @@ git push
 
 ## Change Log
 
+### 2026-06-24 - Add Markdown preview feature
+
+Changed files:
+
+- Updated `package.json` (added `marked` devDep), `public/editor.js`, `public/index.html`, `public/style.css`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Three-state preview toggle**: Off → Split (editor + preview side by side) → Full (preview only) → Off. Cycle via toolbar Preview button or Cmd+P.
+- **Markdown rendering**: Uses `marked` library (bundled via esbuild, zero runtime deps). Renders headings, code blocks, lists, blockquotes, tables, links, images, hr.
+- **Live update**: Preview refreshes on every doc change when preview mode is active.
+- **Non-MD files**: Shows hint message "Preview is only available for Markdown (.md) files".
+- **CSS**: Full markdown element styling for both light/dark themes.
+- **Layout**: `#app.preview-split` class for 50/50 split, `#app.preview-full` for preview-only.
+
+Push status:
+
+- Complete.
+
 ### 2026-06-24 - Fix Cmd+W closing browser tab
 
 Changed files:
