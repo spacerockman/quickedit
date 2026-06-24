@@ -71,7 +71,7 @@ Evidence:
 
 Push status:
 
-- Pending.
+- Complete. Commit `1e1d55f` pushed to `origin/main`.
 
 ### 2026-06-24 - Remove Cmd+S save shortcut + default light theme
 
