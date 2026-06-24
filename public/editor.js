@@ -569,27 +569,17 @@ function updatePreview() {
 
 function applyPreviewMode() {
   if (!previewEl) return;
-  const app = document.getElementById("app");
+  const content = document.getElementById("content");
+  content.classList.remove("preview-split", "preview-full");
+  const btn = document.getElementById("btn-preview");
   if (previewMode === "off") {
-    app.classList.remove("preview-split", "preview-full");
-    editorEl.style.display = "";
-    previewEl.style.display = "none";
-    const btn = document.getElementById("btn-preview");
     if (btn) btn.textContent = "Preview";
   } else if (previewMode === "split") {
-    app.classList.remove("preview-full");
-    app.classList.add("preview-split");
-    editorEl.style.display = "";
-    previewEl.style.display = "";
-    const btn = document.getElementById("btn-preview");
+    content.classList.add("preview-split");
     if (btn) btn.textContent = "Split";
     updatePreview();
   } else if (previewMode === "full") {
-    app.classList.remove("preview-split");
-    app.classList.add("preview-full");
-    editorEl.style.display = "none";
-    previewEl.style.display = "";
-    const btn = document.getElementById("btn-preview");
+    content.classList.add("preview-full");
     if (btn) btn.textContent = "Editor";
     updatePreview();
   }
