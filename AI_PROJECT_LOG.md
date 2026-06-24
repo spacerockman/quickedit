@@ -69,7 +69,7 @@ Evidence:
 
 Push status:
 
-- Pending.
+- Complete. Commit `00d1f9e` pushed to `origin/main`.
 
 ### 2026-06-24 - Add temp file backing + double-click rename
 
