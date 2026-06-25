@@ -18,6 +18,7 @@ import { vue } from "@codemirror/lang-vue";
 import { yaml } from "@codemirror/lang-yaml";
 import { marked } from "marked";
 import { inlinePreview, autoCloseCodeFence, extendEmphasisPair } from "@atomic-editor/editor";
+import { diffLines } from "diff";
 
 function markdownExtension() {
   return markdown({ base: markdownLanguage });

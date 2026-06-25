@@ -50,6 +50,30 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Restore stable Obsidian-style active-line editing
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- Removed the custom active-line Markdown marker hiding layer that used replace decorations.
+- Restored the intended Obsidian-like behavior: the active line remains editable as Markdown source, and it renders after the cursor leaves the line or Enter moves to a new line.
+- Fixed the editing bug where pressing Enter before rendered `**test**` split the hidden marker and left a stray `*`.
+- Kept Atomic editor's built-in `inlinePreview()` as the single source of live-preview decorations.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+- `rg "Decoration|ViewPlugin|syntaxTree|OBSIDIAN_HIDE_TOKENS|pushHiddenToken|obsidianLivePreviewMarks" public/editor.js` returned no matches.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Add GitHub-style Diff comparison
 
 Changed files:
