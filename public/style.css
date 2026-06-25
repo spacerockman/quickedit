@@ -432,6 +432,7 @@ html.light #editor[data-theme="light"] {
   height: 96vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
   background: var(--bg);
   border-radius: 8px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
@@ -591,6 +592,8 @@ html.light #editor[data-theme="light"] {
   background: var(--bg);
   outline: none;
   tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 #diff-original {
@@ -651,7 +654,8 @@ html.light #editor[data-theme="light"] {
 
 #diff-output {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
@@ -680,7 +684,8 @@ html.light #editor[data-theme="light"] {
 /* ── Unified view ────────────────────────────────────────────── */
 
 .diff-unified {
-  
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 
@@ -707,6 +712,7 @@ html.light #editor[data-theme="light"] {
   display: flex;
   padding: 0 14px;
   min-height: 1.6em;
+  min-width: 0;
   align-items: baseline;
 }
 
@@ -778,11 +784,13 @@ html.light #editor[data-theme="light"] {
 /* ── Side-by-side view ───────────────────────────────────────── */
 
 .diff-sbs {
-  /* marker class */
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .sbs-row {
   display: flex;
+  min-width: 0;
   border-bottom: 1px solid transparent;
 }
 .sbs-row:last-child {
