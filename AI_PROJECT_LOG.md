@@ -50,6 +50,28 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Queue @md mode sync outside CodeMirror updates
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- Fixed `@md` mode not activating while typing because WYSIWYG reconfiguration was dispatched synchronously from the CodeMirror update listener.
+- Added a queued microtask sync so first-line `@md` toggles WYSIWYG after the current editor update finishes.
+- This should make the `wysiwyg-active` class apply correctly, hide gutters, and allow live preview marker hiding such as `# test` -> heading text.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Hide Markdown markers in active live preview lines
 
 Changed files:

@@ -141,6 +141,7 @@ let previewMode = "off"; // "off" | "split" | "full"
 let wysiwygMode = false;
 let preWysiwygLang = null; // language to restore on exit
 let manualLanguageId = null;
+let markdownModeSyncQueued = false;
 
 // ---- IndexedDB for handle persistence ----
 const IDB_NAME = "quickedit-fs";
@@ -380,6 +381,15 @@ function syncMarkdownModeFromTrigger() {
   }
 }
 
+function queueMarkdownModeSync() {
+  if (markdownModeSyncQueued) return;
+  markdownModeSyncQueued = true;
+  queueMicrotask(() => {
+    markdownModeSyncQueued = false;
+    syncMarkdownModeFromTrigger();
+  });
+}
+
 function insertMarkdownModeTrigger() {
   if (hasMarkdownModeTrigger()) {
     activateWysiwyg();
@@ -415,7 +425,7 @@ const view = new EditorView({
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         setDirty(true);
-        syncMarkdownModeFromTrigger();
+        queueMarkdownModeSync();
         scheduleAutoSave();
         if (previewMode !== "off") updatePreview();
       }
