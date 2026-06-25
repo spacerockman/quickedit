@@ -8,28 +8,58 @@ import { markdown } from "@codemirror/lang-markdown";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
+import { cpp } from "@codemirror/lang-cpp";
+import { go } from "@codemirror/lang-go";
+import { java } from "@codemirror/lang-java";
+import { php } from "@codemirror/lang-php";
+import { rust } from "@codemirror/lang-rust";
+import { sql } from "@codemirror/lang-sql";
+import { vue } from "@codemirror/lang-vue";
+import { yaml } from "@codemirror/lang-yaml";
 import { marked } from "marked";
 import { inlinePreview, autoCloseCodeFence, extendEmphasisPair } from "@atomic-editor/editor";
 
 // ---- Language map (filename ext -> CM6 extension factory) ----
-const LANG_FACTORY = {
-  js: javascript, mjs: javascript, cjs: javascript,
-  ts: javascript, tsx: javascript, jsx: javascript,
-  py: python, pyi: python, pyx: python,
-  md: markdown, markdown: markdown,
-  html: html, htm: html, xml: html, svg: html, xhtml: html,
-  css: css, scss: css, less: css,
-  json: json, jsonc: json, json5: json,
-};
+const LANGUAGES = [
+  { id: "plain", label: "Plain Text", factory: () => [] },
+  { id: "javascript", label: "JavaScript", factory: () => javascript() },
+  { id: "typescript", label: "TypeScript", factory: () => javascript({ typescript: true }) },
+  { id: "jsx", label: "JSX", factory: () => javascript({ jsx: true }) },
+  { id: "tsx", label: "TSX", factory: () => javascript({ jsx: true, typescript: true }) },
+  { id: "python", label: "Python", factory: () => python() },
+  { id: "markdown", label: "Markdown", factory: () => markdown() },
+  { id: "html", label: "HTML", factory: () => html() },
+  { id: "css", label: "CSS", factory: () => css() },
+  { id: "json", label: "JSON", factory: () => json() },
+  { id: "cpp", label: "C/C++", factory: () => cpp() },
+  { id: "go", label: "Go", factory: () => go() },
+  { id: "java", label: "Java", factory: () => java() },
+  { id: "php", label: "PHP", factory: () => php() },
+  { id: "rust", label: "Rust", factory: () => rust() },
+  { id: "sql", label: "SQL", factory: () => sql() },
+  { id: "vue", label: "Vue", factory: () => vue() },
+  { id: "yaml", label: "YAML", factory: () => yaml() },
+];
 
-const LANG_LABEL = {
-  js: "JavaScript", mjs: "JavaScript", cjs: "JavaScript",
-  ts: "TypeScript", tsx: "TypeScript", jsx: "JSX",
-  py: "Python",
-  md: "Markdown",
-  html: "HTML", xml: "XML",
-  css: "CSS",
-  json: "JSON",
+const LANG_BY_ID = Object.fromEntries(LANGUAGES.map((lang) => [lang.id, lang]));
+
+const EXT_LANGUAGE = {
+  js: "javascript", mjs: "javascript", cjs: "javascript",
+  ts: "typescript", mts: "typescript", cts: "typescript",
+  jsx: "jsx", tsx: "tsx",
+  py: "python", pyi: "python", pyx: "python",
+  md: "markdown", markdown: "markdown", mdx: "markdown",
+  html: "html", htm: "html", xml: "html", svg: "html", xhtml: "html",
+  css: "css", scss: "css", less: "css",
+  json: "json", jsonc: "json", json5: "json",
+  c: "cpp", h: "cpp", cc: "cpp", cpp: "cpp", cxx: "cpp", hpp: "cpp", hxx: "cpp",
+  go: "go",
+  java: "java",
+  php: "php", phtml: "php",
+  rs: "rust",
+  sql: "sql",
+  vue: "vue",
+  yaml: "yaml", yml: "yaml",
 };
 
 const plainText = () => [];
@@ -46,6 +76,7 @@ let isDirty = false;
 let previewMode = "off"; // "off" | "split" | "full"
 let wysiwygMode = false;
 let preWysiwygLang = null; // language to restore on exit
+let manualLanguageId = null;
 
 // ---- IndexedDB for handle persistence ----
 const IDB_NAME = "quickedit-fs";
@@ -185,18 +216,49 @@ function updateTitle() {
 }
 
 // ---- Language selection ----
-function langForFile(filename) {
-  if (!filename) return plainText();
+function languageIdForFile(filename) {
+  if (!filename) return "plain";
   const ext = filename.split(".").pop().toLowerCase();
-  const factory = LANG_FACTORY[ext];
-  return factory ? factory() : plainText();
+  return EXT_LANGUAGE[ext] || "plain";
+}
+
+function extensionForLanguage(languageId) {
+  const lang = LANG_BY_ID[languageId] || LANG_BY_ID.plain;
+  return lang.factory();
+}
+
+function syncLanguagePicker(languageId) {
+  const picker = document.getElementById("language-picker");
+  if (!picker) return;
+  picker.value = manualLanguageId || "auto";
+  picker.title = "Syntax highlighting: " + (LANG_BY_ID[languageId]?.label || "Plain Text");
 }
 
 function setLanguage(filename) {
-  view.dispatch({ effects: langCompartment.reconfigure(langForFile(filename)) });
-  const ext = filename ? filename.split(".").pop().toLowerCase() : "";
-  const label = LANG_LABEL[ext] || "Plain Text";
+  const languageId = manualLanguageId || languageIdForFile(filename);
+  view.dispatch({ effects: langCompartment.reconfigure(extensionForLanguage(languageId)) });
+  const label = LANG_BY_ID[languageId]?.label || "Plain Text";
   document.getElementById("lang-label").textContent = label;
+  syncLanguagePicker(languageId);
+}
+
+function initLanguagePicker() {
+  const picker = document.getElementById("language-picker");
+  if (!picker) return;
+  const auto = document.createElement("option");
+  auto.value = "auto";
+  auto.textContent = "Auto";
+  picker.append(auto);
+  for (const lang of LANGUAGES) {
+    const option = document.createElement("option");
+    option.value = lang.id;
+    option.textContent = lang.label;
+    picker.append(option);
+  }
+  picker.addEventListener("change", () => {
+    manualLanguageId = picker.value === "auto" ? null : picker.value;
+    setLanguage(currentFilename);
+  });
 }
 
 // ---- WYSIWYG mode (Typora-style inline markdown rendering) ----
@@ -274,8 +336,14 @@ const view = new EditorView({
 
 // ---- Auto-save (localStorage + file, debounced 2s) ----
 let autoSaveTimer = 0;
+function setAutosaveStatus(message) {
+  const el = document.getElementById("autosave-status");
+  if (el) el.textContent = message;
+}
+
 function scheduleAutoSave() {
   clearTimeout(autoSaveTimer);
+  setAutosaveStatus("Autosaving...");
   autoSaveTimer = setTimeout(async () => {
     const content = view.state.doc.toString();
     localStorage.setItem("quickedit-content", content);
@@ -284,9 +352,14 @@ function scheduleAutoSave() {
         const writable = await fileHandle.createWritable();
         await writable.write(content);
         await writable.close();
+        setDirty(false);
+        setAutosaveStatus("Autosaved");
       } catch (e) {
         console.error("Auto-save to file failed:", e);
+        setAutosaveStatus("Autosave failed");
       }
+    } else {
+      setAutosaveStatus("Autosaved locally");
     }
   }, 2000);
 }
@@ -552,16 +625,21 @@ function updateStats() {
   const doc = view.state.doc;
   const text = doc.toString();
   document.getElementById("line-count").textContent = doc.lines;
-  document.getElementById("word-count").textContent = text.trim()
-    ? text.trim().split(/\s+/).length
-    : 0;
+  document.getElementById("word-count").textContent = countWords(text);
+}
+
+function countWords(text) {
+  const normalized = text.trim();
+  if (!normalized) return 0;
+  const matches = normalized.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[\p{L}\p{N}]+(?:['’_-][\p{L}\p{N}]+)*/gu);
+  return matches ? matches.length : 0;
 }
 
 function updateCursorPos() {
   const pos = view.state.selection.main.head;
   const line = view.state.doc.lineAt(pos);
   document.getElementById("cursor-pos").textContent =
-    "Ln " + line.number + ", Col " + (pos - line.from() + 1);
+    "Ln " + line.number + ", Col " + (pos - line.from + 1);
 }
 
 // ---- Rename via double-click on filename ----
@@ -614,10 +692,16 @@ function updatePreview() {
   if (previewMode === "off" || !previewEl) return;
   const text = view.state.doc.toString();
   const ext = currentFilename ? currentFilename.split(".").pop().toLowerCase() : "";
+  previewEl.replaceChildren();
   if (ext === "md" || ext === "markdown") {
-    previewEl.innerHTML = marked.parse(text);
+    const template = document.createElement("template");
+    template.innerHTML = marked.parse(text);
+    previewEl.append(template.content.cloneNode(true));
   } else {
-    previewEl.innerHTML = "<pre class='no-md-hint'>Preview is only available for Markdown (.md) files</pre>";
+    const hint = document.createElement("pre");
+    hint.className = "no-md-hint";
+    hint.textContent = "Preview is only available for Markdown (.md) files";
+    previewEl.append(hint);
   }
 }
 
@@ -670,6 +754,7 @@ window.addEventListener("beforeunload", (e) => {
 
 // ---- Init ----
 applyTheme(isDark());
+initLanguagePicker();
 setLanguage(null);
 updateStats();
 updateCursorPos();

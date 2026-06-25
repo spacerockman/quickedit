@@ -288,6 +288,39 @@ body {
 #status-hint {
   margin-left: auto;
   opacity: 0.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#autosave-status {
+  color: var(--ink2);
+  white-space: nowrap;
+}
+
+#language-picker-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink2);
+  white-space: nowrap;
+}
+
+#language-picker {
+  min-width: 104px;
+  max-width: 140px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  outline: none;
+}
+
+#language-picker:focus {
+  border-color: var(--accent);
 }
 
 /* ---- CodeMirror 6 theme overrides ---- */

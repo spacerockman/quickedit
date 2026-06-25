@@ -50,6 +50,52 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Improve word count, language selection, and autosave status
+
+Changed files:
+
+- Updated `package.json`, `package-lock.json`, `public/editor.js`, `public/editor.bundle.js`, `public/index.html`, `public/style.css`.
+
+What was completed:
+
+- Fixed word counting to handle mixed English, numbers, and CJK text. CJK characters now count individually; English/number runs count as words.
+- Added common CodeMirror language packages and automatic syntax highlighting by file extension for JavaScript, TypeScript, JSX/TSX, Python, Markdown, HTML/XML/SVG, CSS, JSON, C/C++, Go, Java, PHP, Rust, SQL, Vue, and YAML.
+- Added a bottom-right language selector with Auto mode. Manual selection overrides the current file extension for syntax highlighting.
+- Made autosave status visible in the status bar. Autosave remains always on: file handles are written when available, otherwise content is saved locally for recovery.
+
+Evidence:
+
+- `npm install -D @codemirror/lang-cpp @codemirror/lang-go @codemirror/lang-java @codemirror/lang-php @codemirror/lang-rust @codemirror/lang-sql @codemirror/lang-vue @codemirror/lang-yaml` completed with 0 vulnerabilities.
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
+### 2026-06-25 - Fix cursor status crash and tighten preview DOM updates
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- Fixed a runtime crash in `updateCursorPos()`: CodeMirror `Line.from` is a numeric property, not a function.
+- Changed the non-Markdown preview hint to use DOM APIs instead of assigning an HTML string.
+- Kept Markdown preview rendering through `marked.parse()`, but now clears and appends parsed content through a template node.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Add WYSIWYG Markdown mode (@md trigger)
 
 Changed files:
