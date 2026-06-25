@@ -50,6 +50,24 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Add GitHub-style Diff comparison
+
+Changed files:
+
+- Updated `package.json` (added `diff` devDep), `public/editor.js`, `public/index.html`, `public/style.css`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Diff modal**: Full-screen overlay with left (original, read-only editor content) + right (modified, paste area) textareas. Click Compare to compute and display the diff.
+- **GitHub-style rendering**: Green background (`rgba(63,185,80,0.12)`) for additions with `+` prefix, red background (`rgba(248,81,73,0.12)`) for deletions with `-` prefix. Line numbers, monospace font, matching theme.
+- **Diff engine**: Uses `diff` npm package (`diffLines`). Text inputs in textarea are compared line-by-line, output rendered as unified diff.
+- **Shortcut**: Cmd+Shift+D opens diff modal, Esc closes it. Diff button also in toolbar.
+- **Bundle size**: 1.1 MB (includes diff library).
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Keep editor layout unchanged in @md mode
 
 Changed files:

@@ -16,6 +16,7 @@
     <button id="btn-save" onclick="saveFile()" title="Save file">Save</button>
     <button id="btn-close" onclick="closeFile()" title="Close file (Cmd+W)">Close</button>
     <button id="btn-preview" onclick="togglePreview()" title="Toggle Markdown preview (Cmd+Shift+P)">Preview</button>
+    <button id="btn-diff" onclick="openDiff()" title="Diff compare — paste modified text to see changes (Cmd+Shift+D)">Diff</button>
     <span id="md-badge" onclick="toggleWysiwyg()" title="WYSIWYG mode active — click to exit (Cmd+Shift+M)">MD</span>
     <span id="filename">Untitled</span>
     <span id="lang-label">Plain Text</span>
@@ -39,7 +40,7 @@
     <span id="status-lines">Lines: <span id="line-count">0</span></span>
     <span id="status-words">Words: <span id="word-count">0</span></span>
     <span id="autosave-status">Autosave on</span>
-    <span id="status-hint">Cmd+O Open &middot; Cmd+W Close &middot; Cmd+Shift+P Preview &middot; Cmd+B Theme &middot; @md for WYSIWYG</span>
+    <span id="status-hint">Cmd+O Open &middot; Cmd+Shift+D Diff &middot; Cmd+W Close &middot; Cmd+Shift+P Preview &middot; Cmd+B Theme &middot; @md for WYSIWYG</span>
     <label id="language-picker-wrap" title="Syntax highlighting language">
       <span>Lang</span>
       <select id="language-picker" aria-label="Syntax highlighting language"></select>
@@ -49,6 +50,31 @@
 
 <!-- Hidden file input (legacy fallback for browsers without showOpenFilePicker) -->
 <input type="file" id="file-input" onchange="handleFileInput(event)" hidden>
+
+<!-- Diff modal -->
+<div id="diff-modal">
+  <div id="diff-overlay" onclick="closeDiff()"></div>
+  <div id="diff-panel">
+    <div id="diff-header">
+      <span>Diff View</span>
+      <div id="diff-header-btns">
+        <button id="btn-diff-compare" onclick="computeDiff()">Compare</button>
+        <button onclick="closeDiff()">Close</button>
+      </div>
+    </div>
+    <div id="diff-panes">
+      <div id="diff-left">
+        <div class="diff-pane-header">Original (Editor)</div>
+        <textarea id="diff-original" readonly spellcheck="false"></textarea>
+      </div>
+      <div id="diff-right">
+        <div class="diff-pane-header">Modified (Paste here)</div>
+        <textarea id="diff-modified" placeholder="Paste modified text here, then click Compare" spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div id="diff-output"></div>
+  </div>
+</div>
 
 <!-- Bundled editor (self-contained IIFE, no module required -- works from file://) -->
 <script src="editor.bundle.js"></script>

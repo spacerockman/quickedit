@@ -406,3 +406,191 @@ html.light #editor[data-theme="light"] {
   --atomic-editor-link: var(--accent);
   --atomic-editor-link-hover: var(--accent-hover);
 }
+
+/* ---- Diff modal ---- */
+#diff-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+#diff-modal.open {
+  display: flex;
+}
+
+#diff-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+#diff-panel {
+  position: relative;
+  margin: 2vh auto;
+  width: 95vw;
+  max-width: 1400px;
+  height: 96vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line);
+}
+
+#diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+#diff-header-btns {
+  display: flex;
+  gap: 6px;
+}
+
+#diff-header button {
+  background: var(--surface2);
+  color: var(--ink);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-ui);
+}
+
+#diff-header button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+#btn-diff-compare {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+
+#btn-diff-compare:hover {
+  background: var(--accent-hover) !important;
+}
+
+#diff-panes {
+  display: flex;
+  gap: 0;
+  flex: 0 0 35%;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+
+#diff-left, #diff-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#diff-left {
+  border-right: 1px solid var(--line);
+}
+
+.diff-pane-header {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#diff-original, #diff-modified {
+  flex: 1;
+  width: 100%;
+  border: none;
+  resize: none;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
+  outline: none;
+  tab-size: 4;
+}
+
+#diff-original {
+  color: var(--ink2);
+}
+
+#diff-modified::placeholder {
+  color: var(--ink2);
+  opacity: 0.5;
+}
+
+#diff-output {
+  flex: 1;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.diff-lines {
+  padding: 0;
+}
+
+.diff-line {
+  display: flex;
+  padding: 0 12px;
+  min-height: 1.5em;
+  align-items: baseline;
+}
+
+.diff-num {
+  flex: 0 0 3.5em;
+  text-align: right;
+  padding-right: 12px;
+  color: var(--ink2);
+  opacity: 0.5;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.diff-prefix {
+  flex: 0 0 1.2em;
+  font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.diff-code {
+  flex: 1;
+  white-space: pre;
+}
+
+.diff-added {
+  background: rgba(63, 185, 80, 0.12);
+}
+.diff-added .diff-prefix { color: #2da44e; }
+.diff-added .diff-code { color: var(--ink); }
+
+.diff-removed {
+  background: rgba(248, 81, 73, 0.12);
+}
+.diff-removed .diff-prefix { color: #cf222e; }
+.diff-removed .diff-code { color: var(--ink); }
+
+/* Esc to close diff modal */
+#diff-modal.open:focus-within #diff-panel {
+  outline: none;
+}

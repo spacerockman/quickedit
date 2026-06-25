@@ -1,8 +1,7 @@
 import { EditorView, basicSetup } from "codemirror";
-import { Decoration, ViewPlugin, keymap } from "@codemirror/view";
+import { keymap } from "@codemirror/view";
 import { Compartment } from "@codemirror/state";
 import { indentWithTab } from "@codemirror/commands";
-import { syntaxTree } from "@codemirror/language";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -70,65 +69,6 @@ const EXT_LANGUAGE = {
 const plainText = () => [];
 const langCompartment = new Compartment();
 const wysiwygCompartment = new Compartment();
-
-const OBSIDIAN_HIDE_TOKENS = new Set([
-  "HeaderMark",
-  "EmphasisMark",
-  "CodeMark",
-  "CodeInfo",
-  "LinkMark",
-  "URL",
-  "LinkTitle",
-  "StrikethroughMark",
-  "QuoteMark",
-]);
-
-function pushHiddenToken(ranges, doc, from, to) {
-  if (from >= to) return;
-  const startLine = doc.lineAt(from);
-  if (to <= startLine.to) {
-    ranges.push(Decoration.replace({ inclusive: false }).range(from, to));
-    return;
-  }
-  for (let cursor = from; cursor < to;) {
-    const line = doc.lineAt(cursor);
-    const end = Math.min(to, line.to);
-    if (end > cursor) ranges.push(Decoration.replace({ inclusive: false }).range(cursor, end));
-    cursor = line.to + 1;
-  }
-}
-
-const obsidianLivePreviewMarks = ViewPlugin.fromClass(class {
-  constructor(view) {
-    this.decorations = this.build(view);
-  }
-
-  update(update) {
-    if (update.docChanged || update.selectionSet || update.viewportChanged) {
-      this.decorations = this.build(update.view);
-    }
-  }
-
-  build(view) {
-    const { state } = view;
-    const ranges = [];
-    syntaxTree(state).iterate({
-      enter: (node) => {
-        if (!OBSIDIAN_HIDE_TOKENS.has(node.name) || node.from >= node.to) return;
-        let hideTo = node.to;
-        if (node.name === "HeaderMark" || node.name === "QuoteMark") {
-          while (hideTo < state.doc.length && state.doc.sliceString(hideTo, hideTo + 1) === " ") {
-            hideTo++;
-          }
-        }
-        pushHiddenToken(ranges, state.doc, node.from, hideTo);
-      },
-    });
-    return Decoration.set(ranges, true);
-  }
-}, {
-  decorations: (plugin) => plugin.decorations,
-});
 
 // ---- State ----
 const TEMP_FILENAME = "temp.txt";
@@ -335,7 +275,6 @@ function activateWysiwyg() {
     view.dispatch({ effects: wysiwygCompartment.reconfigure([
       EditorView.lineWrapping,
       inlinePreview(),
-      obsidianLivePreviewMarks,
       autoCloseCodeFence,
       extendEmphasisPair,
     ]) });
@@ -852,6 +791,52 @@ window.togglePreview = function () {
   applyPreviewMode();
 };
 
+// ---- Diff view ----
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+window.openDiff = function () {
+  document.getElementById("diff-original").value = view.state.doc.toString();
+  document.getElementById("diff-modified").value = "";
+  document.getElementById("diff-output").innerHTML = "";
+  document.getElementById("diff-modal").classList.add("open");
+  document.getElementById("diff-modified").focus();
+};
+
+window.closeDiff = function () {
+  document.getElementById("diff-modal").classList.remove("open");
+};
+
+window.computeDiff = function () {
+  const original = document.getElementById("diff-original").value;
+  const modified = document.getElementById("diff-modified").value;
+  const changes = diffLines(original, modified);
+  let html = '<div class="diff-lines">';
+  let lineNum = 1;
+  for (const part of changes) {
+    const lines = part.value.split("\n");
+    if (lines[lines.length - 1] === "") lines.pop();
+    for (let i = 0; i < lines.length; i++) {
+      const cls = part.added ? "diff-added" : part.removed ? "diff-removed" : "";
+      const prefix = part.added ? "+" : part.removed ? "-" : " ";
+      html += `<div class="diff-line ${cls}"><span class="diff-num">${lineNum}</span><span class="diff-prefix">${prefix}</span><span class="diff-code">${escapeHtml(lines[i])}</span></div>`;
+      lineNum++;
+    }
+  }
+  html += "</div>";
+  document.getElementById("diff-output").innerHTML = html;
+  document.getElementById("diff-output").scrollTop = 0;
+};
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("diff-modal").classList.contains("open")) {
+    closeDiff();
+  }
+});
+
 // ---- Keyboard shortcuts (case-insensitive, capture phase) ----
 window.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
@@ -862,6 +847,7 @@ window.addEventListener("keydown", (e) => {
   else if (key === "w") { e.preventDefault(); e.stopPropagation(); closeFile(false); }
   else if (key === "p" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); window.togglePreview(); }
   else if (key === "m" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); window.toggleWysiwyg(); }
+  else if (key === "d" && e.shiftKey) { e.preventDefault(); e.stopPropagation(); window.openDiff(); }
   else if (key === "b") { e.preventDefault(); e.stopPropagation(); window.toggleTheme(); }
 }, true);
 
