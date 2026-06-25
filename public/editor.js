@@ -77,7 +77,6 @@ let previewMode = "off"; // "off" | "split" | "full"
 let wysiwygMode = false;
 let preWysiwygLang = null; // language to restore on exit
 let manualLanguageId = null;
-let handlingMdTrigger = false;
 
 // ---- IndexedDB for handle persistence ----
 const IDB_NAME = "quickedit-fs";
@@ -278,7 +277,6 @@ function activateWysiwyg() {
   const badge = document.getElementById("md-badge");
   if (badge) badge.style.display = "inline-block";
   document.getElementById("editor").setAttribute("data-theme", isDark() ? "dark" : "light");
-  localStorage.setItem("quickedit-wysiwyg", "true");
   if (previewMode !== "off") { previewMode = "off"; applyPreviewMode(); }
 }
 
@@ -292,30 +290,47 @@ function deactivateWysiwyg() {
   const badge = document.getElementById("md-badge");
   if (badge) badge.style.display = "none";
   document.getElementById("editor").removeAttribute("data-theme");
-  localStorage.setItem("quickedit-wysiwyg", "false");
 }
 
 window.toggleWysiwyg = function () {
-  if (wysiwygMode) deactivateWysiwyg();
-  else activateWysiwyg();
+  if (wysiwygMode) {
+    removeMarkdownModeTrigger();
+  } else {
+    insertMarkdownModeTrigger();
+  }
 };
 
-function maybeActivateMarkdownFromTrigger() {
-  if (wysiwygMode || handlingMdTrigger || view.state.doc.lines === 0) return false;
+function hasMarkdownModeTrigger() {
+  if (view.state.doc.lines === 0) return false;
   const firstLine = view.state.doc.line(1);
-  if (firstLine.text.trim() !== "@md") return false;
+  return firstLine.text.trim() === "@md";
+}
 
-  handlingMdTrigger = true;
+function syncMarkdownModeFromTrigger() {
+  if (hasMarkdownModeTrigger()) {
+    activateWysiwyg();
+  } else {
+    deactivateWysiwyg();
+  }
+}
+
+function insertMarkdownModeTrigger() {
+  if (hasMarkdownModeTrigger()) {
+    activateWysiwyg();
+    return;
+  }
+  const insert = view.state.doc.length ? "@md\n" : "@md";
+  view.dispatch({ changes: { from: 0, insert } });
+}
+
+function removeMarkdownModeTrigger() {
+  if (!hasMarkdownModeTrigger()) {
+    deactivateWysiwyg();
+    return;
+  }
+  const firstLine = view.state.doc.line(1);
   const removeTo = firstLine.to < view.state.doc.length ? firstLine.to + 1 : firstLine.to;
-  view.dispatch({
-    changes: { from: firstLine.from, to: removeTo, insert: "" },
-  });
-  activateWysiwyg();
-  scheduleAutoSave();
-  updateStats();
-  updateCursorPos();
-  handlingMdTrigger = false;
-  return true;
+  view.dispatch({ changes: { from: firstLine.from, to: removeTo, insert: "" } });
 }
 
 // ---- Editor ----
@@ -328,16 +343,14 @@ const view = new EditorView({
     keymap.of([
       indentWithTab,
       { key: "Mod-w", run: () => { closeFile(false); return true; } },
-      { key: "Enter", run: (view) => {
-        return maybeActivateMarkdownFromTrigger();
-      }},
     ]),
     langCompartment.of(plainText()),
     wysiwygCompartment.of([]),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         setDirty(true);
-        if (!maybeActivateMarkdownFromTrigger()) scheduleAutoSave();
+        syncMarkdownModeFromTrigger();
+        scheduleAutoSave();
         if (previewMode !== "off") updatePreview();
       }
       if (update.selectionSet || update.docChanged || update.focusChanged) {
@@ -385,6 +398,7 @@ function loadFileContent(content, filename) {
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: content },
   });
+  syncMarkdownModeFromTrigger();
   if (!wysiwygMode) setLanguage(filename);
   updateTitle();
   localStorage.setItem("quickedit-content", content);
@@ -774,10 +788,7 @@ setLanguage(null);
 updateStats();
 updateCursorPos();
 updateTitle();
-
-if (localStorage.getItem("quickedit-wysiwyg") === "true") {
-  activateWysiwyg();
-}
+syncMarkdownModeFromTrigger();
 
 const isTempSession = localStorage.getItem("quickedit-is-temp") !== "false";
 if (isTempSession) {

@@ -50,6 +50,30 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Make @md a persistent Markdown mode switch
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- Changed `@md` from a one-shot trigger into a persistent first-line mode switch.
+- If the first line is `@md`, the editor enters Obsidian-like live Markdown preview mode.
+- Deleting or changing the first-line `@md` exits live Markdown mode.
+- Removed `quickedit-wysiwyg` localStorage mode persistence so the document content is the single source of truth.
+- The toolbar MD toggle now inserts or removes the first-line `@md` switch.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Make @md trigger instant full-editor Markdown rendering
 
 Changed files:
