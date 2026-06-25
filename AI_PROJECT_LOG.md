@@ -50,6 +50,28 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Keep editor layout unchanged in @md mode
+
+Changed files:
+
+- Updated `public/style.css`.
+
+What was completed:
+
+- Removed WYSIWYG-only CSS that changed editor font, content width, padding, and hid gutters.
+- `@md` mode now keeps the editing page visually consistent with the normal editor layout while retaining Markdown live preview behavior.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+- `rg "wysiwyg-active.*cm-gutters|wysiwyg-active.*cm-content|wysiwyg-active.*cm-editor|wysiwyg-active #editor" public/style.css` returned no matches.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Fix Markdown live preview activation and Preview button
 
 Changed files:
