@@ -1,6 +1,6 @@
 import { EditorView, basicSetup } from "codemirror";
 import { keymap } from "@codemirror/view";
-import { Compartment } from "@codemirror/state";
+import { Compartment, Prec } from "@codemirror/state";
 import { indentWithTab } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
@@ -360,6 +360,47 @@ function removeMarkdownModeTrigger() {
   view.dispatch({ changes: { from: firstLine.from, to: removeTo, insert: "" } });
 }
 
+function continueMarkdownList(editorView) {
+  if (!wysiwygMode && languageIdForFile(currentFilename) !== "markdown") return false;
+  const { state } = editorView;
+  const selection = state.selection.main;
+  if (!selection.empty) return false;
+
+  const line = state.doc.lineAt(selection.head);
+  const offset = selection.head - line.from;
+  const before = line.text.slice(0, offset);
+  const after = line.text.slice(offset);
+  const taskMatch = before.match(/^(\s*)([-+*])\s+\[[ xX]\](?:\s+(.*))?$/);
+  const bulletMatch = before.match(/^(\s*)([-+*])(?:\s+(.*))?$/);
+  const orderedMatch = before.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
+  if (!taskMatch && !bulletMatch && !orderedMatch) return false;
+
+  const content = orderedMatch ? orderedMatch[4] : taskMatch ? (taskMatch[3] ?? "") : (bulletMatch[3] ?? "");
+  const isEmptyItem = !content.trim() && !after.trim();
+  if (isEmptyItem) {
+    editorView.dispatch({
+      changes: { from: line.from, to: selection.head, insert: "" },
+      selection: { anchor: line.from },
+    });
+    return true;
+  }
+
+  let marker;
+  if (taskMatch) {
+    marker = `${taskMatch[1]}${taskMatch[2]} [ ] `;
+  } else if (bulletMatch) {
+    marker = `${bulletMatch[1]}${bulletMatch[2]} `;
+  } else {
+    marker = `${orderedMatch[1]}${Number(orderedMatch[2]) + 1}${orderedMatch[3]} `;
+  }
+  const insert = "\n" + marker;
+  editorView.dispatch({
+    changes: { from: selection.head, insert },
+    selection: { anchor: selection.head + insert.length },
+  });
+  return true;
+}
+
 // ---- Editor ----
 const savedContent = localStorage.getItem("quickedit-content") || "";
 
@@ -367,10 +408,11 @@ const view = new EditorView({
   doc: savedContent,
   extensions: [
     basicSetup,
-    keymap.of([
+    Prec.high(keymap.of([
       indentWithTab,
+      { key: "Enter", run: continueMarkdownList },
       { key: "Mod-w", run: () => { closeFile(false); return true; } },
-    ]),
+    ])),
     langCompartment.of(plainText()),
     wysiwygCompartment.of([]),
     EditorView.updateListener.of((update) => {

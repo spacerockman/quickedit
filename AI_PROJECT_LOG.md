@@ -50,6 +50,30 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Add Markdown list continuation on Enter
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- Added Markdown Enter handling for list continuation in `@md`/Markdown mode.
+- `- item` + Enter now creates the next `- ` item automatically.
+- Empty list items such as `- ` + Enter exit the list by removing the marker.
+- Also supports `*`, `+`, ordered lists like `1.`, and task lists like `- [ ]`.
+- Raised the custom keymap priority so it runs before CodeMirror's default Enter behavior.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Restore stable Obsidian-style active-line editing
 
 Changed files:
