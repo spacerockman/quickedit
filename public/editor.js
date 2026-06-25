@@ -373,14 +373,16 @@ function continueMarkdownList(editorView) {
   const taskMatch = before.match(/^(\s*)([-+*])\s+\[[ xX]\](?:\s+(.*))?$/);
   const bulletMatch = before.match(/^(\s*)([-+*])(?:\s+(.*))?$/);
   const orderedMatch = before.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
-  if (!taskMatch && !bulletMatch && !orderedMatch) return false;
+  const alphaMatch = before.match(/^(\s*)([a-zA-Z])([.)])\s+(.*)$/);
+  if (!taskMatch && !bulletMatch && !orderedMatch && !alphaMatch) return false;
 
-  const content = orderedMatch ? orderedMatch[4] : taskMatch ? (taskMatch[3] ?? "") : (bulletMatch[3] ?? "");
+  const content = orderedMatch ? orderedMatch[4] : alphaMatch ? alphaMatch[4] : taskMatch ? (taskMatch[3] ?? "") : (bulletMatch[3] ?? "");
   const isEmptyItem = !content.trim() && !after.trim();
   if (isEmptyItem) {
+    const indent = orderedMatch ? orderedMatch[1] : alphaMatch ? alphaMatch[1] : taskMatch ? taskMatch[1] : bulletMatch[1];
     editorView.dispatch({
-      changes: { from: line.from, to: selection.head, insert: "" },
-      selection: { anchor: line.from },
+      changes: { from: selection.head, insert: "\n" + indent },
+      selection: { anchor: selection.head + 1 + indent.length },
     });
     return true;
   }
@@ -390,8 +392,11 @@ function continueMarkdownList(editorView) {
     marker = `${taskMatch[1]}${taskMatch[2]} [ ] `;
   } else if (bulletMatch) {
     marker = `${bulletMatch[1]}${bulletMatch[2]} `;
-  } else {
+  } else if (orderedMatch) {
     marker = `${orderedMatch[1]}${Number(orderedMatch[2]) + 1}${orderedMatch[3]} `;
+  } else {
+    const nextChar = String.fromCharCode(alphaMatch[2].charCodeAt(0) + 1);
+    marker = `${alphaMatch[1]}${nextChar}${alphaMatch[3]} `;
   }
   const insert = "\n" + marker;
   editorView.dispatch({

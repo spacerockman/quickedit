@@ -50,6 +50,27 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Fix: alphabetical list markers (d. etc) disappearing on Enter
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- **Bug**: Typing `d.` on a line and pressing Enter caused it to disappear. Root cause: CM6's built-in markdown extension treated `d.` as an alphabetical ordered list and deleted empty items. Our `continueMarkdownList` only matched numeric ordered lists (`1.`, `2.`), missing alpha (`a.`, `d.`, `B)`, etc.).
+- **Fix**: Added `alphaMatch` regex `/^(\s*)([a-zA-Z])([.)])\s+(.*)$/` to intercept alphabetical markers.
+- **Changed empty-item behavior**: Empty list items (`- `, `1.`, `d.`) no longer get deleted on Enter. Instead, a plain newline is inserted, preserving the marker text. Users can delete markers manually if they want to exit the list.
+- **Alpha continuation**: `d. item` + Enter now continues to `e. ` automatically.
+
+Evidence:
+
+- `npm run build` built successfully.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Add Markdown list continuation on Enter
 
 Changed files:
