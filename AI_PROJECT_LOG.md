@@ -50,6 +50,29 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Make @md trigger instant full-editor Markdown rendering
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`, `public/style.css`.
+
+What was completed:
+
+- Changed `@md` activation from Enter-only to instant activation when the first line becomes `@md`.
+- The trigger line is removed before autosave so `@md` does not remain in the document.
+- Added a `wysiwyg-active` app class while Markdown WYSIWYG mode is active.
+- Hid editor gutters and added prose-style editor padding in WYSIWYG mode so the whole editor reads like a live Markdown page.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Improve word count, language selection, and autosave status
 
 Changed files:

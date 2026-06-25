@@ -178,6 +178,22 @@ body {
   overflow: hidden;
 }
 
+#app.wysiwyg-active #editor {
+  background: var(--bg);
+}
+
+#app.wysiwyg-active .cm-editor {
+  font-family: var(--font-ui);
+}
+
+#app.wysiwyg-active .cm-editor .cm-gutters {
+  display: none;
+}
+
+#app.wysiwyg-active .cm-editor .cm-content {
+  padding-block: 28px 48px;
+}
+
 #preview {
   flex: 0;
   overflow: auto;

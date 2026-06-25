@@ -77,6 +77,7 @@ let previewMode = "off"; // "off" | "split" | "full"
 let wysiwygMode = false;
 let preWysiwygLang = null; // language to restore on exit
 let manualLanguageId = null;
+let handlingMdTrigger = false;
 
 // ---- IndexedDB for handle persistence ----
 const IDB_NAME = "quickedit-fs";
@@ -273,6 +274,7 @@ function activateWysiwyg() {
     extendEmphasisPair(),
   ]) });
   document.getElementById("lang-label").textContent = "Markdown (WYSIWYG)";
+  document.getElementById("app").classList.add("wysiwyg-active");
   const badge = document.getElementById("md-badge");
   if (badge) badge.style.display = "inline-block";
   document.getElementById("editor").setAttribute("data-theme", isDark() ? "dark" : "light");
@@ -286,6 +288,7 @@ function deactivateWysiwyg() {
   view.dispatch({ effects: wysiwygCompartment.reconfigure([]) });
   setLanguage(preWysiwygLang);
   preWysiwygLang = null;
+  document.getElementById("app").classList.remove("wysiwyg-active");
   const badge = document.getElementById("md-badge");
   if (badge) badge.style.display = "none";
   document.getElementById("editor").removeAttribute("data-theme");
@@ -296,6 +299,24 @@ window.toggleWysiwyg = function () {
   if (wysiwygMode) deactivateWysiwyg();
   else activateWysiwyg();
 };
+
+function maybeActivateMarkdownFromTrigger() {
+  if (wysiwygMode || handlingMdTrigger || view.state.doc.lines === 0) return false;
+  const firstLine = view.state.doc.line(1);
+  if (firstLine.text.trim() !== "@md") return false;
+
+  handlingMdTrigger = true;
+  const removeTo = firstLine.to < view.state.doc.length ? firstLine.to + 1 : firstLine.to;
+  view.dispatch({
+    changes: { from: firstLine.from, to: removeTo, insert: "" },
+  });
+  activateWysiwyg();
+  scheduleAutoSave();
+  updateStats();
+  updateCursorPos();
+  handlingMdTrigger = false;
+  return true;
+}
 
 // ---- Editor ----
 const savedContent = localStorage.getItem("quickedit-content") || "";
@@ -308,13 +329,7 @@ const view = new EditorView({
       indentWithTab,
       { key: "Mod-w", run: () => { closeFile(false); return true; } },
       { key: "Enter", run: (view) => {
-        const line1 = view.state.doc.line(1);
-        if (line1.text.trim() === "@md" && view.state.selection.main.head === line1.to) {
-          view.dispatch({ changes: { from: line1.from, to: line1.to } });
-          activateWysiwyg();
-          return true;
-        }
-        return false;
+        return maybeActivateMarkdownFromTrigger();
       }},
     ]),
     langCompartment.of(plainText()),
@@ -322,7 +337,7 @@ const view = new EditorView({
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         setDirty(true);
-        scheduleAutoSave();
+        if (!maybeActivateMarkdownFromTrigger()) scheduleAutoSave();
         if (previewMode !== "off") updatePreview();
       }
       if (update.selectionSet || update.docChanged || update.focusChanged) {
