@@ -50,6 +50,31 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Fix Markdown live preview activation and Preview button
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`.
+
+What was completed:
+
+- Fixed the real WYSIWYG activation error: `autoCloseCodeFence` and `extendEmphasisPair` are CodeMirror extensions, not functions.
+- Made `activateWysiwyg()` atomic: it only sets `wysiwygMode = true` after all CodeMirror reconfiguration succeeds, preventing half-enabled states.
+- Restored the Preview button while `@md` mode is active.
+- Preview now treats first-line `@md` documents as Markdown even when the filename is `temp.txt`.
+- Preview strips the first-line `@md` control marker before rendering.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+- `rg "autoCloseCodeFence\\(|extendEmphasisPair\\(" public/editor.js public/editor.bundle.js` returned no matches.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Queue @md mode sync outside CodeMirror updates
 
 Changed files:

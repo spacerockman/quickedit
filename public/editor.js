@@ -329,22 +329,33 @@ function initLanguagePicker() {
 // ---- WYSIWYG mode (Typora-style inline markdown rendering) ----
 function activateWysiwyg() {
   if (wysiwygMode) return;
-  preWysiwygLang = currentFilename;
+  const previousLang = currentFilename;
+  try {
+    view.dispatch({ effects: langCompartment.reconfigure(markdownExtension()) });
+    view.dispatch({ effects: wysiwygCompartment.reconfigure([
+      EditorView.lineWrapping,
+      inlinePreview(),
+      obsidianLivePreviewMarks,
+      autoCloseCodeFence,
+      extendEmphasisPair,
+    ]) });
+  } catch (e) {
+    console.error("Failed to activate Markdown live preview:", e);
+    try {
+      view.dispatch({ effects: wysiwygCompartment.reconfigure([]) });
+      setLanguage(previousLang);
+    } catch (rollbackError) {
+      console.error("Failed to roll back Markdown live preview:", rollbackError);
+    }
+    return;
+  }
+  preWysiwygLang = previousLang;
   wysiwygMode = true;
-  view.dispatch({ effects: langCompartment.reconfigure(markdownExtension()) });
-  view.dispatch({ effects: wysiwygCompartment.reconfigure([
-    EditorView.lineWrapping,
-    inlinePreview(),
-    obsidianLivePreviewMarks,
-    autoCloseCodeFence(),
-    extendEmphasisPair(),
-  ]) });
   document.getElementById("lang-label").textContent = "Markdown (WYSIWYG)";
   document.getElementById("app").classList.add("wysiwyg-active");
   const badge = document.getElementById("md-badge");
   if (badge) badge.style.display = "inline-block";
   document.getElementById("editor").setAttribute("data-theme", isDark() ? "dark" : "light");
-  if (previewMode !== "off") { previewMode = "off"; applyPreviewMode(); }
 }
 
 function deactivateWysiwyg() {
@@ -795,10 +806,16 @@ const previewEl = document.getElementById("preview");
 
 function updatePreview() {
   if (previewMode === "off" || !previewEl) return;
-  const text = view.state.doc.toString();
+  let text = view.state.doc.toString();
+  const markdownMode = hasMarkdownModeTrigger();
+  if (markdownMode) {
+    const firstLine = view.state.doc.line(1);
+    const from = firstLine.to < view.state.doc.length ? firstLine.to + 1 : firstLine.to;
+    text = view.state.doc.sliceString(from);
+  }
   const ext = currentFilename ? currentFilename.split(".").pop().toLowerCase() : "";
   previewEl.replaceChildren();
-  if (ext === "md" || ext === "markdown") {
+  if (markdownMode || ext === "md" || ext === "markdown") {
     const template = document.createElement("template");
     template.innerHTML = marked.parse(text);
     previewEl.append(template.content.cloneNode(true));
@@ -829,7 +846,6 @@ function applyPreviewMode() {
 }
 
 window.togglePreview = function () {
-  if (wysiwygMode) return;
   if (previewMode === "off") previewMode = "split";
   else if (previewMode === "split") previewMode = "full";
   else previewMode = "off";
