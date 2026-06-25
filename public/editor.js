@@ -1,10 +1,11 @@
 import { EditorView, basicSetup } from "codemirror";
-import { keymap } from "@codemirror/view";
+import { Decoration, ViewPlugin, keymap } from "@codemirror/view";
 import { Compartment } from "@codemirror/state";
 import { indentWithTab } from "@codemirror/commands";
+import { syntaxTree } from "@codemirror/language";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
-import { markdown } from "@codemirror/lang-markdown";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
@@ -19,6 +20,10 @@ import { yaml } from "@codemirror/lang-yaml";
 import { marked } from "marked";
 import { inlinePreview, autoCloseCodeFence, extendEmphasisPair } from "@atomic-editor/editor";
 
+function markdownExtension() {
+  return markdown({ base: markdownLanguage });
+}
+
 // ---- Language map (filename ext -> CM6 extension factory) ----
 const LANGUAGES = [
   { id: "plain", label: "Plain Text", factory: () => [] },
@@ -27,7 +32,7 @@ const LANGUAGES = [
   { id: "jsx", label: "JSX", factory: () => javascript({ jsx: true }) },
   { id: "tsx", label: "TSX", factory: () => javascript({ jsx: true, typescript: true }) },
   { id: "python", label: "Python", factory: () => python() },
-  { id: "markdown", label: "Markdown", factory: () => markdown() },
+  { id: "markdown", label: "Markdown", factory: () => markdownExtension() },
   { id: "html", label: "HTML", factory: () => html() },
   { id: "css", label: "CSS", factory: () => css() },
   { id: "json", label: "JSON", factory: () => json() },
@@ -65,6 +70,65 @@ const EXT_LANGUAGE = {
 const plainText = () => [];
 const langCompartment = new Compartment();
 const wysiwygCompartment = new Compartment();
+
+const OBSIDIAN_HIDE_TOKENS = new Set([
+  "HeaderMark",
+  "EmphasisMark",
+  "CodeMark",
+  "CodeInfo",
+  "LinkMark",
+  "URL",
+  "LinkTitle",
+  "StrikethroughMark",
+  "QuoteMark",
+]);
+
+function pushHiddenToken(ranges, doc, from, to) {
+  if (from >= to) return;
+  const startLine = doc.lineAt(from);
+  if (to <= startLine.to) {
+    ranges.push(Decoration.replace({ inclusive: false }).range(from, to));
+    return;
+  }
+  for (let cursor = from; cursor < to;) {
+    const line = doc.lineAt(cursor);
+    const end = Math.min(to, line.to);
+    if (end > cursor) ranges.push(Decoration.replace({ inclusive: false }).range(cursor, end));
+    cursor = line.to + 1;
+  }
+}
+
+const obsidianLivePreviewMarks = ViewPlugin.fromClass(class {
+  constructor(view) {
+    this.decorations = this.build(view);
+  }
+
+  update(update) {
+    if (update.docChanged || update.selectionSet || update.viewportChanged) {
+      this.decorations = this.build(update.view);
+    }
+  }
+
+  build(view) {
+    const { state } = view;
+    const ranges = [];
+    syntaxTree(state).iterate({
+      enter: (node) => {
+        if (!OBSIDIAN_HIDE_TOKENS.has(node.name) || node.from >= node.to) return;
+        let hideTo = node.to;
+        if (node.name === "HeaderMark" || node.name === "QuoteMark") {
+          while (hideTo < state.doc.length && state.doc.sliceString(hideTo, hideTo + 1) === " ") {
+            hideTo++;
+          }
+        }
+        pushHiddenToken(ranges, state.doc, node.from, hideTo);
+      },
+    });
+    return Decoration.set(ranges, true);
+  }
+}, {
+  decorations: (plugin) => plugin.decorations,
+});
 
 // ---- State ----
 const TEMP_FILENAME = "temp.txt";
@@ -266,9 +330,11 @@ function activateWysiwyg() {
   if (wysiwygMode) return;
   preWysiwygLang = currentFilename;
   wysiwygMode = true;
-  view.dispatch({ effects: langCompartment.reconfigure(markdown()) });
+  view.dispatch({ effects: langCompartment.reconfigure(markdownExtension()) });
   view.dispatch({ effects: wysiwygCompartment.reconfigure([
+    EditorView.lineWrapping,
     inlinePreview(),
+    obsidianLivePreviewMarks,
     autoCloseCodeFence(),
     extendEmphasisPair(),
   ]) });

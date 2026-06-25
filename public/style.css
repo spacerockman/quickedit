@@ -186,12 +186,22 @@ body {
   font-family: var(--font-ui);
 }
 
+#app.wysiwyg-active .cm-editor .cm-scroller {
+  font-family: var(--font-ui);
+}
+
 #app.wysiwyg-active .cm-editor .cm-gutters {
   display: none;
 }
 
 #app.wysiwyg-active .cm-editor .cm-content {
+  max-width: 76ch;
+  margin-inline: auto;
   padding-block: 28px 48px;
+  padding-inline: 20px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.7;
 }
 
 #preview {

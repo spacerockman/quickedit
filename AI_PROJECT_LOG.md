@@ -50,6 +50,29 @@ git push
 
 ## Change Log
 
+### 2026-06-25 - Hide Markdown markers in active live preview lines
+
+Changed files:
+
+- Updated `public/editor.js`, `public/editor.bundle.js`, `public/style.css`.
+
+What was completed:
+
+- Fixed `@md` live preview so a line like `# sdss` renders as styled heading text instead of showing the raw `# sdss` while editing that line.
+- Switched Markdown mode to the Atomic editor recommended CodeMirror parser config: `markdown({ base: markdownLanguage })`.
+- Added a WYSIWYG-only decoration layer that hides Markdown syntax markers such as heading marks, emphasis marks, inline code marks, link URL syntax, strikethrough marks, and quote marks even on the active line.
+- Added WYSIWYG editor wrapping and prose layout styling to better match Obsidian-like live preview.
+
+Evidence:
+
+- `npm run build` built successfully.
+- `node --check public/editor.js` passed.
+- `node --check public/editor.bundle.js` passed.
+
+Push status:
+
+- Pending.
+
 ### 2026-06-25 - Make @md a persistent Markdown mode switch
 
 Changed files:
