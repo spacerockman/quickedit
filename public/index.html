@@ -53,26 +53,42 @@
 
 <!-- Diff modal -->
 <div id="diff-modal">
-  <div id="diff-overlay" onclick="closeDiff()"></div>
+  <div id="diff-overlay"></div>
   <div id="diff-panel">
     <div id="diff-header">
-      <span>Diff View</span>
-      <div id="diff-header-btns">
-        <button id="btn-diff-compare" onclick="computeDiff()">Compare</button>
-        <button onclick="closeDiff()">Close</button>
+      <span id="diff-header-title">Diff View</span>
+      <div id="diff-header-controls">
+        <div id="diff-nav">
+          <button id="btn-diff-prev" class="diff-nav-btn" title="Previous change" disabled>▲</button>
+          <span id="diff-nav-pos" class="diff-nav-pos"></span>
+          <button id="btn-diff-next" class="diff-nav-btn" title="Next change" disabled>▼</button>
+        </div>
+        <label id="diff-ws-label" title="Ignore whitespace differences">
+          <input type="checkbox" id="diff-ignore-ws"> Ignore WS
+        </label>
+        <div id="diff-header-btns">
+          <button id="btn-diff-mode" class="diff-header-btn" title="Toggle view mode">Side-by-side</button>
+          <button id="btn-diff-copy" class="diff-header-btn" title="Copy as unified diff">Copy</button>
+          <button id="btn-diff-compare" class="diff-header-btn" title="Compute diff">Compare</button>
+          <button id="btn-diff-close" class="diff-header-btn" title="Close diff (Esc)">✕</button>
+        </div>
       </div>
     </div>
     <div id="diff-panes">
       <div id="diff-left">
         <div class="diff-pane-header">Original (Editor)</div>
-        <textarea id="diff-original" readonly spellcheck="false"></textarea>
+        <textarea id="diff-original" readonly spellcheck="false" aria-label="Original text"></textarea>
       </div>
       <div id="diff-right">
         <div class="diff-pane-header">Modified (Paste here)</div>
-        <textarea id="diff-modified" placeholder="Paste modified text here, then click Compare" spellcheck="false"></textarea>
+        <textarea id="diff-modified" placeholder="Paste modified text here — auto-compares on input" spellcheck="false" aria-label="Modified text"></textarea>
       </div>
     </div>
-    <div id="diff-output"></div>
+    <div id="diff-stats-bar">
+      <div id="diff-stats"></div>
+      <div id="diff-toast"></div>
+    </div>
+    <div id="diff-output" tabindex="0" role="region" aria-label="Diff output"></div>
   </div>
 </div>
 

@@ -18,7 +18,7 @@ import { vue } from "@codemirror/lang-vue";
 import { yaml } from "@codemirror/lang-yaml";
 import { marked } from "marked";
 import { inlinePreview, autoCloseCodeFence, extendEmphasisPair } from "@atomic-editor/editor";
-import { diffLines } from "diff";
+import { DiffView } from "./diff/diff-view.js";
 
 function markdownExtension() {
   return markdown({ base: markdownLanguage });
@@ -413,7 +413,7 @@ const view = new EditorView({
   doc: savedContent,
   extensions: [
     basicSetup,
-    Prec.high(keymap.of([
+    Prec.highest(keymap.of([
       indentWithTab,
       { key: "Enter", run: continueMarkdownList },
       { key: "Mod-w", run: () => { closeFile(false); return true; } },
@@ -839,51 +839,13 @@ window.togglePreview = function () {
   applyPreviewMode();
 };
 
-// ---- Diff view ----
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.appendChild(document.createTextNode(text));
-  return div.innerHTML;
-}
+// ---- Diff view (integrated via DiffView module) ----
+/** @type {DiffView} */
+let diffView;
 
 window.openDiff = function () {
-  document.getElementById("diff-original").value = view.state.doc.toString();
-  document.getElementById("diff-modified").value = "";
-  document.getElementById("diff-output").innerHTML = "";
-  document.getElementById("diff-modal").classList.add("open");
-  document.getElementById("diff-modified").focus();
+  if (diffView) diffView.open();
 };
-
-window.closeDiff = function () {
-  document.getElementById("diff-modal").classList.remove("open");
-};
-
-window.computeDiff = function () {
-  const original = document.getElementById("diff-original").value;
-  const modified = document.getElementById("diff-modified").value;
-  const changes = diffLines(original, modified);
-  let html = '<div class="diff-lines">';
-  let lineNum = 1;
-  for (const part of changes) {
-    const lines = part.value.split("\n");
-    if (lines[lines.length - 1] === "") lines.pop();
-    for (let i = 0; i < lines.length; i++) {
-      const cls = part.added ? "diff-added" : part.removed ? "diff-removed" : "";
-      const prefix = part.added ? "+" : part.removed ? "-" : " ";
-      html += `<div class="diff-line ${cls}"><span class="diff-num">${lineNum}</span><span class="diff-prefix">${prefix}</span><span class="diff-code">${escapeHtml(lines[i])}</span></div>`;
-      lineNum++;
-    }
-  }
-  html += "</div>";
-  document.getElementById("diff-output").innerHTML = html;
-  document.getElementById("diff-output").scrollTop = 0;
-};
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && document.getElementById("diff-modal").classList.contains("open")) {
-    closeDiff();
-  }
-});
 
 // ---- Keyboard shortcuts (case-insensitive, capture phase) ----
 window.addEventListener("keydown", (e) => {
@@ -909,6 +871,10 @@ window.addEventListener("beforeunload", (e) => {
 
 // ---- Init ----
 applyTheme(isDark());
+
+diffView = new DiffView(view);
+diffView.init();
+
 initLanguagePicker();
 setLanguage(null);
 updateStats();
